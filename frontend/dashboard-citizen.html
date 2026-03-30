@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Dashboard - Anand Civic Issues</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-building"></i> Anand Civic Issues
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> <span id="user-name">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#profile" onclick="showSection('profile')">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse show">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showSection('home')">
+                                <i class="bi bi-house"></i> Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('report')">
+                                <i class="bi bi-plus-circle"></i> Report Issue
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('my-complaints')">
+                                <i class="bi bi-list-task"></i> My Complaints
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('map')">
+                                <i class="bi bi-map"></i> Map View
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('notifications')">
+                                <i class="bi bi-bell"></i> Notifications
+                                <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Alert Container -->
+                <div id="alert-container" class="mt-3"></div>
+
+                <!-- Home Section -->
+                <section id="section-home" class="dashboard-section">
+                    <h2 class="mt-4">Welcome, <span id="user-greeting">Citizen</span>!</h2>
+                    <p class="text-muted">Report and track civic issues in Anand city</p>
+                    
+                    <!-- Stats Cards -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-file-earmark-text stat-icon text-primary"></i>
+                                <div class="stat-number" id="stat-total">0</div>
+                                <div class="stat-label">Total Complaints</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-hourglass-split stat-icon text-warning"></i>
+                                <div class="stat-number" id="stat-pending">0</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-arrow-repeat stat-icon text-info"></i>
+                                <div class="stat-number" id="stat-progress">0</div>
+                                <div class="stat-label">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-check-circle stat-icon text-success"></i>
+                                <div class="stat-number" id="stat-resolved">0</div>
+                                <div class="stat-label">Resolved</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Complaints -->
+                    <div class="card mt-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Recent Complaints</h5>
+                            <button class="btn btn-sm btn-primary" onclick="showSection('report')">
+                                <i class="bi bi-plus"></i> New Complaint
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-complaints-list">
+                                <div class="text-center py-4">
+                                    <div class="spinner"></div>
+                                    <p class="text-muted">Loading complaints...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Report Issue Section -->
+                <section id="section-report" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Report New Issue</h2>
+                    <p class="text-muted">Submit a civic issue with photo and location</p>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="report-form" enctype="multipart/form-data">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="complaint-title" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="complaint-title" required placeholder="Brief title of the issue">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="department-select" class="form-label">Department</label>
+                                            <select class="form-select" id="department-select" required>
+                                                <option value="">Select Department</option>
+                                            </select>
+                                            <div class="form-text">Select the appropriate department for your issue</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="complaint-description" class="form-label">Description</label>
+                                            <textarea class="form-control" id="complaint-description" rows="4" required placeholder="Describe the issue in detail..."></textarea>
+                                            <div id="keyword-warning" class="form-text text-warning" style="display: none;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Photo</label>
+                                            <div class="border rounded p-4 text-center bg-light">
+                                                <input type="file" class="form-control" id="complaint-image" accept="image/*" required>
+                                                <img id="image-preview" class="img-fluid mt-3 rounded" style="display: none; max-height: 200px;">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Location</label>
+                                            <div class="input-group mb-2">
+                                                <input type="text" class="form-control" id="location-address" placeholder="Address (optional)">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="getLocation()">
+                                                    <i class="bi bi-geo-alt"></i> Get GPS
+                                                </button>
+                                            </div>
+                                            <input type="hidden" id="latitude">
+                                            <input type="hidden" id="longitude">
+                                            <div id="location-status" class="form-text"></div>
+                                            <div id="map-preview" style="height: 200px; border-radius: 8px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <strong>Note:</strong> Issues can only be submitted within Anand city boundary. GPS location is required.
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Submit Complaint
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- My Complaints Section -->
+                <section id="section-my-complaints" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">My Complaints</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="complaint-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all-complaints">All</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pending-complaints">Pending</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#progress-complaints">In Progress</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#resolved-complaints">Resolved</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content" id="complaint-tabs-content">
+                                <div class="tab-pane fade show active" id="all-complaints">
+                                    <div id="all-complaints-list"></div>
+                                </div>
+                                <div class="tab-pane fade" id="pending-complaints">
+                                    <div id="pending-complaints-list"></div>
+                                </div>
+                                <div class="tab-pane fade" id="progress-complaints">
+                                    <div id="progress-complaints-list"></div>
+                                </div>
+                                <div class="tab-pane fade" id="resolved-complaints">
+                                    <div id="resolved-complaints-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Map Section -->
+                <section id="section-map" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Map View</h2>
+                    <p class="text-muted">View all civic issues on the map</p>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="citizen-map" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Notifications Section -->
+                <section id="section-notifications" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Notifications</h2>
+                    
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Your Notifications</h5>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="markAllNotificationsRead()">Mark all as read</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="notifications-list" class="list-group">
+                                <p class="text-muted text-center py-4">No notifications</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile Section -->
+                <section id="section-profile" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Profile</h2>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <i class="bi bi-person-circle" style="font-size: 5rem; color: var(--primary-color);"></i>
+                                </div>
+                                <div class="col-md-8">
+                                    <table class="table table-borderless">
+                                        <tr><td><strong>Name:</strong></td><td id="profile-name"></td></tr>
+                                        <tr><td><strong>Email:</strong></td><td id="profile-email"></td></tr>
+                                        <tr><td><strong>Phone:</strong></td><td id="profile-phone"></td></tr>
+                                        <tr><td><strong>Role:</strong></td><td><span class="badge bg-primary">Citizen</span></td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Complaint Detail Modal -->
+    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="complaint-detail-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let citizenMap = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(localStorage.getItem('user'));
+            
+            // Update UI
+            document.getElementById('user-name').textContent = currentUser.name;
+            document.getElementById('user-greeting').textContent = currentUser.name.split(' ')[0];
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-email').textContent = currentUser.email;
+            document.getElementById('profile-phone').textContent = currentUser.phone;
+            
+            // Load initial data
+            await loadDashboardData();
+            
+            // Load departments for report form
+            loadDepartments();
+            
+            // Setup image preview
+            document.getElementById('complaint-image').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('image-preview').src = e.target.result;
+                        document.getElementById('image-preview').style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Setup keyword validation
+            document.getElementById('complaint-description').addEventListener('input', validateDescription);
+            document.getElementById('department-select').addEventListener('change', validateDescription);
+            
+            // Setup report form submission
+            document.getElementById('report-form').addEventListener('submit', submitComplaint);
+        });
+
+        async function loadDashboardData() {
+            // Load stats
+            const stats = await getStats();
+            document.getElementById('stat-total').textContent = stats.total || 0;
+            document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
+            document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
+            document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
+            
+            // Load recent complaints
+            const complaints = await getComplaints();
+            renderComplaintsList(complaints, 'recent-complaints-list');
+            
+            // Load all complaints by category
+            renderComplaintsList(complaints.filter(c => c.status === 'pending'), 'pending-complaints-list');
+            renderComplaintsList(complaints.filter(c => ['assigned', 'in_progress'].includes(c.status)), 'progress-complaints-list');
+            renderComplaintsList(complaints.filter(c => ['resolved', 'closed'].includes(c.status)), 'resolved-complaints-list');
+            
+            // Load notifications
+            loadNotifications();
+        }
+
+        async function loadDepartments() {
+            const departments = await getDepartments();
+            const select = document.getElementById('department-select');
+            
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.id;
+                option.textContent = dept.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function validateDescription() {
+            const description = document.getElementById('complaint-description').value;
+            const departmentId = document.getElementById('department-select').value;
+            const warning = document.getElementById('keyword-warning');
+            
+            if (!description || !departmentId) {
+                warning.style.display = 'none';
+                return;
+            }
+            
+            const result = await validateKeywords(description, parseInt(departmentId));
+            
+            if (!result.valid) {
+                warning.textContent = '⚠️ Warning: Your description may not match the selected department. The issue might be flagged as fake.';
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        async function getLocation() {
+            const status = document.getElementById('location-status');
+            status.innerHTML = '<i class="bi bi-arrow-repeat"></i> Getting location...';
+            
+            try {
+                const position = await getCurrentLocation();
+                const lat = position.latitude;
+                const lng = position.longitude;
+                
+                // Validate location
+                const result = await validateLocation(lat, lng);
+                
+                if (!result.valid) {
+                    status.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i> Out of boundary! Issues can only be reported within Anand city.';
+                    return;
+                }
+                
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+                status.innerHTML = '<i class="bi bi-check-circle text-success"></i> Location captured!';
+                
+                // Show mini map
+                if (!citizenMap) {
+                    citizenMap = L.map('map-preview').setView([lat, lng], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(citizenMap);
+                } else {
+                    citizenMap.setView([lat, lng], 15);
+                }
+                
+                L.marker([lat, lng]).addTo(citizenMap);
+                
+            } catch (error) {
+                status.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i> Could not get location. Please enable GPS.';
+            }
+        }
+
+        async function submitComplaint(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('complaint-title').value;
+            const departmentId = document.getElementById('department-select').value;
+            const description = document.getElementById('complaint-description').value;
+            const latitude = document.getElementById('latitude').value;
+            const longitude = document.getElementById('longitude').value;
+            const address = document.getElementById('location-address').value;
+            const imageFile = document.getElementById('complaint-image').files[0];
+            
+            // Validate GPS
+            if (!latitude || !longitude) {
+                showAlert('Please get your GPS location first', 'warning');
+                return;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('department_id', departmentId);
+            formData.append('latitude', latitude);
+            formData.append('longitude', longitude);
+            formData.append('address', address);
+            if (imageFile) {
+                formData.append('before_image', imageFile);
+            }
+            
+            const result = await createComplaint(formData);
+            
+            if (result.success) {
+                showAlert('Complaint submitted successfully!', 'success');
+                document.getElementById('report-form').reset();
+                document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('location-status').innerHTML = '';
+                showSection('home');
+                loadDashboardData();
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        }
+
+        function renderComplaintsList(complaints, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (!complaints || complaints.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-4">No complaints found</p>';
+                return;
+            }
+            
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card priority-${c.priority}">
+                    <div class="row">
+                        <div class="col-md-2">
+                            ${c.before_image ? 
+                                `<img src="${API_BASE}/uploads/before/${c.before_image}" class="complaint-image" alt="Before">` :
+                                `<div class="complaint-image bg-light d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-camera text-muted"></i>
+                                </div>`
+                            }
+                        </div>
+                        <div class="col-md-7">
+                            <h6>${c.title}</h6>
+                            <p class="text-muted small mb-1">${c.description.substring(0, 80)}...</p>
+                            <small class="text-muted">${formatDate(c.created_at)}</small>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <span class="status-${c.status}">${c.status}</span><br>
+                            <span class="priority-${c.priority}">${c.priority}</span>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="showComplaintDetail(${c.id})">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadNotifications() {
+            const notifications = await getNotifications();
+            const container = document.getElementById('notifications-list');
+            const countBadge = document.getElementById('notification-count');
+            
+            const unreadCount = notifications.filter(n => !n.is_read).length;
+            if (unreadCount > 0) {
+                countBadge.textContent = unreadCount;
+                countBadge.style.display = 'block';
+            }
+            
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-4">No notifications</p>';
+                return;
+            }
+            
+            container.innerHTML = notifications.map(n => `
+                <div class="list-group-item list-group-item-action ${n.is_read ? '' : 'bg-light'}" onclick="markNotificationRead(${n.id})">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${n.title}</h6>
+                        <small>${formatDate(n.created_at)}</small>
+                    </div>
+                    <p class="mb-1">${n.message}</p>
+                </div>
+            `).join('');
+        }
+
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
+            
+            // Show selected section
+            document.getElementById(`section-${section}`).style.display = 'block';
+            
+            // Update active nav
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.closest('.nav-link')?.classList.add('active');
+            
+            // Initialize map if needed
+            if (section === 'map' && !citizenMap) {
+                setTimeout(() => {
+                    citizenMap = L.map('citizen-map').setView([22.5, 72.9], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(citizenMap);
+                    
+                    // Load and display complaints
+                    getComplaints().then(complaints => {
+                        complaints.forEach(c => {
+                            const statusColors = {
+                                'pending': '#f56565',
+                                'assigned': '#4299e1',
+                                'in_progress': '#ecc94b',
+                                'completed': '#48bb78',
+                                'resolved': '#2c7a7b',
+                                'closed': '#718096'
+                            };
+                            
+                            L.circleMarker([c.latitude, c.longitude], {
+                                radius: 10,
+                                fillColor: statusColors[c.status] || '#718096',
+                                color: '#fff',
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8
+                            }).addTo(citizenMap).bindPopup(`
+                                <strong>${c.title}</strong><br>
+                                Status: ${c.status}<br>
+                                ${c.department_name}
+                            `);
+                        });
+                    });
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>

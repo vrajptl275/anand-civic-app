@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Dashboard - Anand Civic Issues</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-building"></i> Anand Municipal
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> <span id="user-name">Department</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                            <i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('complaints')">
+                            <i class="bi bi-list-task"></i> Department Complaints</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('assign')">
+                            <i class="bi bi-person-plus"></i> Assign Complaints</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('analytics')">
+                            <i class="bi bi-graph-up"></i> Analytics</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div id="alert-container" class="mt-3"></div>
+
+                <section id="section-dashboard" class="dashboard-section">
+                    <h2 class="mt-4">Department Dashboard</h2>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-number" id="stat-total">0</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-number" id="stat-pending">0</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-number" id="stat-progress">0</div>
+                                <div class="stat-label">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-number" id="stat-resolved">0</div>
+                                <div class="stat-label">Resolved</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header"><h5 class="mb-0">Recent Complaints</h5></div>
+                        <div class="card-body">
+                            <div id="recent-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-complaints" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Department Complaints</h2>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="all-complaints-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-assign" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Assign Complaints</h2>
+                    <p class="text-muted">Assign pending complaints to officers</p>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="assign-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-analytics" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Analytics</h2>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="priorityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="assignModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assign to Officer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <select class="form-select" id="assign-officer"></select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="confirmAssign()">Assign</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="complaint-detail-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="complaint-detail-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let selectedComplaintId = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) { window.location.href = 'login.html'; return; }
+            currentUser = JSON.parse(localStorage.getItem('user'));
+            if (currentUser.role !== 'department') { window.location.href = 'login.html'; return; }
+            
+            document.getElementById('user-name').textContent = currentUser.name;
+            await loadData();
+        });
+
+        async function loadData() {
+            const stats = await getStats();
+            document.getElementById('stat-total').textContent = stats.total || 0;
+            document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
+            document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
+            document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
+            
+            const complaints = await getComplaints();
+            renderComplaints(complaints, 'recent-list');
+            renderComplaints(complaints, 'all-complaints-list');
+            
+            const pending = complaints.filter(c => c.status === 'pending' || c.status === 'assigned');
+            renderAssignList(pending);
+            
+            renderCharts(stats);
+        }
+
+        function renderComplaints(complaints, containerId) {
+            const container = document.getElementById(containerId);
+            if (!complaints.length) {
+                container.innerHTML = '<p class="text-muted">No complaints</p>';
+                return;
+            }
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card priority-${c.priority}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>${c.title}</h6>
+                            <p class="text-muted small">${c.description.substring(0, 80)}...</p>
+                            <small>${formatDate(c.created_at)}</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="status-${c.status}">${c.status}</span><br>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showComplaintDetail(${c.id})">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderAssignList(complaints) {
+            const container = document.getElementById('assign-list');
+            const officers = await getUsers('officer', currentUser.department_id);
+            
+            if (!complaints.length) {
+                container.innerHTML = '<p class="text-muted">No complaints to assign</p>';
+                return;
+            }
+            
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>${c.title}</h6>
+                            <p class="text-muted small">${c.description.substring(0, 60)}...</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-success" onclick="openAssignModal(${c.id})">Assign</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Store officers for modal
+            window.deptOfficers = officers;
+        }
+
+        function openAssignModal(complaintId) {
+            selectedComplaintId = complaintId;
+            const select = document.getElementById('assign-officer');
+            select.innerHTML = window.deptOfficers.map(o => 
+                `<option value="${o.id}">${o.name}</option>`
+            ).join('');
+            new bootstrap.Modal(document.getElementById('assignModal')).show();
+        }
+
+        async function confirmAssign() {
+            const officerId = document.getElementById('assign-officer').value;
+            const result = await assignComplaint(selectedComplaintId, officerId);
+            if (result.success) {
+                showAlert('Assigned successfully!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+                loadData();
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        }
+
+        function renderCharts(stats) {
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.by_status || {}),
+                    datasets: [{ data: Object.values(stats.by_status || {}), backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78'] }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            new Chart(document.getElementById('priorityChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats.by_priority || {}),
+                    datasets: [{ label: 'By Priority', data: Object.values(stats.by_priority || {}), backgroundColor: ['#48bb78', '#ecc94b', '#f56565'] }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${section}`).style.display = 'block';
+        }
+    </script>
+</body>
+</html>

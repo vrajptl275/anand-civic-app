@@ -1,0 +1,26 @@
+services:
+  # Native PostgreSQL Database Server
+  - type: psql
+    name: anand-civic-db
+    plan: free
+    version: 15
+
+  # Flask Web Service API
+  - type: web
+    name: anand-civic-backend
+    env: python
+    plan: free
+    region: singapore # Standard fast free-tier region
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --log-file -"
+    envVars:
+      # Automatically wires the deployed PostgreSQL database into the API!
+      - key: DATABASE_URL
+        fromDatabase:
+          name: anand-civic-db
+          property: connectionString
+      # Generates a randomized, secure Flask Secret Key
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production

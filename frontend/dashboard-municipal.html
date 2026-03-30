@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Municipal Dashboard - Anand Civic Issues</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-building"></i> Anand Municipal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> <span id="user-name">Admin</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#profile" onclick="showSection('profile')">Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse show">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('departments')">
+                                <i class="bi bi-diagram-3"></i> Departments
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('officers')">
+                                <i class="bi bi-people"></i> Officers
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('all-complaints')">
+                                <i class="bi bi-list-task"></i> All Complaints
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('high-priority')">
+                                <i class="bi bi-exclamation-triangle"></i> High Priority
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('analytics')">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('map')">
+                                <i class="bi bi-map"></i> Map View
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('notifications')">
+                                <i class="bi bi-bell"></i> Notifications
+                                <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Alert Container -->
+                <div id="alert-container" class="mt-3"></div>
+
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="dashboard-section">
+                    <h2 class="mt-4">Municipal Dashboard</h2>
+                    <p class="text-muted">Overview of all civic issues in Anand city</p>
+                    
+                    <!-- Stats Cards -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-file-earmark-text stat-icon text-primary"></i>
+                                <div class="stat-number" id="stat-total">0</div>
+                                <div class="stat-label">Total Complaints</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-hourglass-split stat-icon text-warning"></i>
+                                <div class="stat-number" id="stat-pending">0</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-arrow-repeat stat-icon text-info"></i>
+                                <div class="stat-number" id="stat-progress">0</div>
+                                <div class="stat-label">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-check-circle stat-icon text-success"></i>
+                                <div class="stat-number" id="stat-resolved">0</div>
+                                <div class="stat-label">Resolved</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent & High Priority -->
+                    <div class="row mt-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Recent Complaints</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-complaints-list">
+                                        <div class="text-center py-4"><div class="spinner"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header bg-danger text-white">
+                                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> High Priority</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="high-priority-list">
+                                        <p class="text-muted">No high priority issues</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Departments Section -->
+                <section id="section-departments" class="dashboard-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <h2>Departments</h2>
+                        <button class="btn btn-primary" onclick="showAddDepartmentModal()">
+                            <i class="bi bi-plus"></i> Add Department
+                        </button>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <table class="table" id="departments-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Keywords</th>
+                                        <th>Issues</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Officers Section -->
+                <section id="section-officers" class="dashboard-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <h2>Officers</h2>
+                        <button class="btn btn-primary" onclick="showAddOfficerModal()">
+                            <i class="bi bi-person-plus"></i> Add Officer
+                        </button>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <table class="table" id="officers-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- All Complaints Section -->
+                <section id="section-all-complaints" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">All Complaints</h2>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filter-status" onchange="filterComplaints()">
+                                        <option value="">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="assigned">Assigned</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="resolved">Resolved</option>
+                                        <option value="closed">Closed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filter-department" onchange="filterComplaints()">
+                                        <option value="">All Departments</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="filter-priority" onchange="filterComplaints()">
+                                        <option value="">All Priority</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="all-complaints-table"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- High Priority Section -->
+                <section id="section-high-priority" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">High Priority Issues</h2>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="high-priority-full-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics Section -->
+                <section id="section-analytics" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Analytics</h2>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <h5>Complaints by Status</h5>
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <h5>Complaints by Priority</h5>
+                                <canvas id="priorityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="chart-container">
+                                <h5>Complaints by Department</h5>
+                                <canvas id="departmentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Map Section -->
+                <section id="section-map" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Map View</h2>
+                    <p class="text-muted">View all civic issues on the map</p>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="municipal-map" style="height: 500px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Notifications Section -->
+                <section id="section-notifications" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Notifications</h2>
+                    
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">All Notifications</h5>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="markAllNotificationsRead()">Mark all as read</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="notifications-list" class="list-group"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile Section -->
+                <section id="section-profile" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Profile</h2>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <i class="bi bi-person-badge" style="font-size: 5rem; color: var(--primary-color);"></i>
+                                </div>
+                                <div class="col-md-8">
+                                    <table class="table table-borderless">
+                                        <tr><td><strong>Name:</strong></td><td id="profile-name"></td></tr>
+                                        <tr><td><strong>Email:</strong></td><td id="profile-email"></td></tr>
+                                        <tr><td><strong>Phone:</strong></td><td id="profile-phone"></td></tr>
+                                        <tr><td><strong>Role:</strong></td><td><span class="badge bg-success">Municipal Admin</span></td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Department Modal -->
+    <div class="modal fade" id="departmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="department-form">
+                        <div class="mb-3">
+                            <label class="form-label">Department Name</label>
+                            <select class="form-select" id="dept-name" required>
+                                <option value="" disabled selected>Select a department</option>
+                                <option value="Road & Infrastructure">Road & Infrastructure</option>
+                                <option value="Solid Waste Management">Solid Waste Management</option>
+                                <option value="Water Supply">Water Supply</option>
+                                <option value="Public Health">Public Health</option>
+                                <option value="Electricity">Electricity</option>
+                                <option value="Garden & Parks">Garden & Parks</option>
+                                <option value="Town Planning">Town Planning</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Department Email (for login)</label>
+                            <input type="email" class="form-control" id="dept-email" placeholder="department@anand.gov.in">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="dept-password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="dept-phone" value="9876543210">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="dept-description"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Keywords (for fake issue detection, comma separated)</label>
+                            <input type="text" class="form-control" id="dept-keywords" placeholder="garbage, waste, trash">
+                            <div class="form-text">e.g., garbage,waste,trash for Garbage department</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Icon</label>
+                            <select class="form-select" id="dept-icon">
+                                <option value="trash">Trash/Garbage</option>
+                                <option value="road">Road</option>
+                                <option value="tint">Water</option>
+                                <option value="flash">Electricity</option>
+                                <option value="tree">Park/Garden</option>
+                                <option value="shield">Safety</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDepartment()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Officer Modal -->
+    <div class="modal fade" id="officerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Officer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="officer-form">
+                        <div class="mb-3">
+                            <label class="form-label">Officer Name</label>
+                            <input type="text" class="form-control" id="officer-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email (for login)</label>
+                            <input type="email" class="form-control" id="officer-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="officer-password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="officer-phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" id="officer-department" required></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveOfficer()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complaint Detail Modal -->
+    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="complaint-detail-content"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let municipalMap = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(localStorage.getItem('user'));
+            if (currentUser.role !== 'municipal') {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            document.getElementById('user-name').textContent = currentUser.name;
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('profile-email').textContent = currentUser.email;
+            document.getElementById('profile-phone').textContent = currentUser.phone;
+            
+            await loadDashboardData();
+        });
+
+        async function loadDashboardData() {
+            const stats = await getStats();
+            document.getElementById('stat-total').textContent = stats.total || 0;
+            document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
+            document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
+            document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
+            
+            const complaints = await getComplaints();
+            
+            // Recent complaints
+            renderTableComplaints(complaints.slice(0, 10), 'recent-complaints-list');
+            
+            // High priority
+            const highPriority = complaints.filter(c => c.priority === 'high');
+            renderComplaintsList(highPriority, 'high-priority-list');
+            renderComplaintsList(highPriority, 'high-priority-full-list');
+            
+            // Load departments
+            const departments = await getDepartments();
+            loadDepartmentsForFilters(departments);
+            
+            // Load officers
+            loadOfficers();
+            
+            // Load notifications
+            loadNotifications();
+            
+            // Render charts
+            renderCharts(stats);
+        }
+
+        async function loadDepartmentsForFilters(departments) {
+            const deptSelect = document.getElementById('filter-department');
+            const officerDeptSelect = document.getElementById('officer-department');
+            
+            if (deptSelect) deptSelect.innerHTML = '<option value="">All Departments</option>';
+            if (officerDeptSelect) officerDeptSelect.innerHTML = '<option value="" disabled selected>Select Department</option>';
+            
+            departments.forEach(dept => {
+                const option1 = new Option(dept.name, dept.id);
+                const option2 = new Option(dept.name, dept.id);
+                if (deptSelect) deptSelect.add(option1);
+                if (officerDeptSelect) officerDeptSelect.add(option2);
+            });
+            
+            // Load departments table
+            const tbody = document.querySelector('#departments-table tbody');
+            if (!departments.length) {
+                tbody.innerHTML = '<tr><td colspan="5">No departments</td></tr>';
+                return;
+            }
+            tbody.innerHTML = departments.map(d => `
+                <tr>
+                    <td>${d.id}</td>
+                    <td>${d.name}</td>
+                    <td><small>${(d.keywords || []).join(', ')}</small></td>
+                    <td>-</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDept(${d.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadOfficers() {
+            const officers = await getUsers('officer');
+            const tbody = document.querySelector('#officers-table tbody');
+            
+            const departments = await getDepartments();
+            const deptMap = {};
+            departments.forEach(d => deptMap[d.id] = d.name);
+            
+            tbody.innerHTML = officers.map(o => `
+                <tr>
+                    <td>${o.id}</td>
+                    <td>${o.name}</td>
+                    <td>${o.email}</td>
+                    <td>${o.phone}</td>
+                    <td>${deptMap[o.department_id] || 'N/A'}</td>
+                    <td><span class="badge ${o.is_active ? 'bg-success' : 'bg-danger'}">${o.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <button class="btn btn-sm ${o.is_active ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="toggleUserStatus(${o.id}, ${!o.is_active})">${o.is_active ? 'Deactivate' : 'Activate'}</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTableComplaints(complaints, containerId) {
+            const container = document.getElementById(containerId);
+            if (!complaints.length) {
+                container.innerHTML = '<p class="text-muted">No complaints</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Dept</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${complaints.map(c => `
+                            <tr>
+                                <td>#${c.id}</td>
+                                <td>${c.title.substring(0, 25)}...</td>
+                                <td>${c.department_name || c.category}</td>
+                                <td><span class="status-${c.status}">${c.status}</span></td>
+                                <td><span class="priority-${c.priority}">${c.priority}</span></td>
+                                <td><button class="btn btn-sm btn-link" onclick="showComplaintDetail(${c.id})">View</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderComplaintsList(complaints, containerId) {
+            const container = document.getElementById(containerId);
+            if (!complaints.length) {
+                container.innerHTML = '<p class="text-muted">No complaints</p>';
+                return;
+            }
+            
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card priority-${c.priority}">
+                    <h6>${c.title}</h6>
+                    <p class="text-muted small">${c.description.substring(0, 60)}...</p>
+                    <span class="status-${c.status}">${c.status}</span>
+                    <button class="btn btn-sm btn-link float-end" onclick="showComplaintDetail(${c.id})">View</button>
+                </div>
+            `).join('');
+        }
+
+        function renderCharts(stats) {
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(stats.by_status || {}),
+                        datasets: [{
+                            data: Object.values(stats.by_status || {}),
+                            backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78', '#2c7a7b', '#718096']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+            
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart');
+            if (priorityCtx) {
+                new Chart(priorityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(stats.by_priority || {}).map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+                        datasets: [{
+                            label: 'Complaints',
+                            data: Object.values(stats.by_priority || {}),
+                            backgroundColor: ['#48bb78', '#ecc94b', '#f56565']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                });
+            }
+        }
+
+        async function filterComplaints() {
+            const status = document.getElementById('filter-status').value;
+            const departmentId = document.getElementById('filter-department').value;
+            const priority = document.getElementById('filter-priority').value;
+            
+            const complaints = await getComplaints({ status, department_id: departmentId, priority });
+            renderTableComplaints(complaints, 'all-complaints-table');
+        }
+
+        function showAddDepartmentModal() {
+            new bootstrap.Modal(document.getElementById('departmentModal')).show();
+        }
+
+        async function saveDepartment() {
+            const data = {
+                name: document.getElementById('dept-name').value,
+                description: document.getElementById('dept-description').value,
+                keywords: document.getElementById('dept-keywords').value,
+                icon: document.getElementById('dept-icon').value,
+                email: document.getElementById('dept-email').value,
+                password: document.getElementById('dept-password').value,
+                phone: document.getElementById('dept-phone').value
+            };
+            
+            const result = await createDepartment(data);
+            if (result.success) {
+                showAlert('Department created!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('departmentModal')).hide();
+                loadDashboardData();
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        }
+
+        async function deleteDept(id) {
+            if (!confirm('Are you sure you want to deactivate this department?')) return;
+            const result = await deleteDepartment(id);
+            if (result.success) {
+                showAlert('Department deactivated!', 'success');
+                loadDashboardData();
+            } else {
+                showAlert(result.message || 'Error deleting department', 'danger');
+            }
+        }
+
+        async function toggleUserStatus(id, newStatus) {
+            const action = newStatus ? 'activate' : 'deactivate';
+            if (!confirm(`Are you sure you want to ${action} this officer?`)) return;
+            const result = await updateUser(id, { is_active: newStatus });
+            if (result.success) {
+                showAlert(`Officer ${action}d!`, 'success');
+                loadOfficers();
+            } else {
+                showAlert(result.message || `Error ${action}ing officer`, 'danger');
+            }
+        }
+
+        function showAddOfficerModal() {
+            new bootstrap.Modal(document.getElementById('officerModal')).show();
+        }
+
+        async function saveOfficer() {
+            const data = {
+                name: document.getElementById('officer-name').value,
+                email: document.getElementById('officer-email').value,
+                phone: document.getElementById('officer-phone').value,
+                password: document.getElementById('officer-password').value,
+                role: 'officer',
+                department_id: document.getElementById('officer-department').value
+            };
+            
+            const result = await createUser(data);
+            if (result.success) {
+                showAlert('Officer created!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('officerModal')).hide();
+                loadOfficers();
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        }
+
+        async function loadNotifications() {
+            const notifications = await getNotifications();
+            const container = document.getElementById('notifications-list');
+            const countBadge = document.getElementById('notification-count');
+            
+            const unreadCount = notifications.filter(n => !n.is_read).length;
+            if (unreadCount > 0) {
+                countBadge.textContent = unreadCount;
+                countBadge.style.display = 'block';
+            }
+            
+            if (!notifications.length) {
+                container.innerHTML = '<p class="text-muted text-center py-4">No notifications</p>';
+                return;
+            }
+            
+            container.innerHTML = notifications.map(n => `
+                <div class="list-group-item list-group-item-action ${n.is_read ? '' : 'bg-light'}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${n.title}</h6>
+                        <small>${formatDate(n.created_at)}</small>
+                    </div>
+                    <p class="mb-1">${n.message}</p>
+                </div>
+            `).join('');
+        }
+
+        function showSection(section) {
+            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${section}`).style.display = 'block';
+            
+            if (section === 'map' && !municipalMap) {
+                setTimeout(() => {
+                    municipalMap = L.map('municipal-map').setView([22.5, 72.9], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(municipalMap);
+                    
+                    getComplaints().then(complaints => {
+                        complaints.forEach(c => {
+                            const statusColors = {
+                                'pending': '#f56565', 'assigned': '#4299e1', 'in_progress': '#ecc94b',
+                                'completed': '#48bb78', 'resolved': '#2c7a7b', 'closed': '#718096'
+                            };
+                            L.circleMarker([c.latitude, c.longitude], {
+                                radius: 10, fillColor: statusColors[c.status] || '#718096',
+                                color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8
+                            }).addTo(municipalMap).bindPopup(`<strong>${c.title}</strong><br>${c.status}`);
+                        });
+                    });
+                }, 100);
+            }
+        }
+    </script>
+</body>
+</html>

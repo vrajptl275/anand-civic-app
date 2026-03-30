@@ -1,0 +1,23 @@
+# General
+.DS_Store
+.vscode/
+
+# Python / Flask
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.env
+
+# Database
+instance/
+*.sqlite3
+*.db
+
+# Uploads
+backend/uploads/before/*
+backend/uploads/after/*
+!backend/uploads/before/.gitkeep
+!backend/uploads/after/.gitkeep
