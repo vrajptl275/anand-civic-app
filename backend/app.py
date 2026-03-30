@@ -1186,11 +1186,24 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
-# ============== MAIN ==============
+# ============== APP INITIALIZATION ==============
+
+with app.app_context():
+    # Execute unconditionally on cloud boot to ensure PostgreSQL tables exist
+    db.create_all()
+    
+    # Bootstrap Security: Ensure a Municipal Admin always exists in a fresh database
+    from sqlalchemy.exc import ProgrammingError
+    try:
+        if not User.query.filter_by(role='municipal').first():
+            hashed_pw = hash_password('admin123')
+            admin = User(name='Anand Administrator', email='admin@anand.gov.in', phone='9999999999', password_hash=hashed_pw, role='municipal', is_active=True)
+            db.session.add(admin)
+            db.session.commit()
+            print("System Bootstrap: Default Municipal Admin created (admin@anand.gov.in / admin123)")
+    except Exception as e:
+        db.session.rollback()
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    
     port = int(os.environ.get('PORT', 8001))
     app.run(host='0.0.0.0', port=port, debug=True)
