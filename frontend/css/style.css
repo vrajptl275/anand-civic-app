@@ -316,3 +316,36 @@ body {
     
     .card-body { padding: 1.2rem; }
 }
+
+/* ================== ARCHITECTURE: MODERN TECH UNICORN (HTML REWRITES) ================== */
+/* 1. Split Screen Auth Layout */
+.split-layout { display: flex; min-height: 100vh; overflow: hidden; background-color: var(--bg-card); }
+.split-left { flex: 1.2; background: linear-gradient(135deg, var(--primary), #005bb5); position: relative; color: white; justify-content: center; align-items: center; padding: 4rem; overflow: hidden; }
+.split-right { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; background-color: var(--bg-card); overflow-y: auto; }
+.split-content { position: relative; z-index: 2; max-width: 600px; }
+.split-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,100 C30,70 70,30 100,0 L100,100 Z" fill="rgba(255,255,255,0.05)"/></svg>') no-repeat center center; background-size: cover; z-index: 1; opacity: 0.8;}
+.form-container { width: 100%; max-width: 480px; }
+
+/* 2. Micro-interactions & Utilities */
+.tracking-tight { letter-spacing: -0.5px; }
+.tracking-wider { letter-spacing: 1.5px; }
+.hover-lift { transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s; }
+.hover-lift:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important; }
+.transition-smooth { transition: all 0.2s ease-in-out; }
+.bg-main { background-color: var(--bg-main) !important; }
+.bg-card { background-color: var(--bg-card) !important; }
+
+/* 3. Dashboard Shell */
+.sidebar { height: 100vh; border-right: 1px solid var(--border-light); background: var(--bg-card); flex-shrink: 0; }
+.sidebar .nav-link { padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); color: var(--text-dark); font-weight: 500; display: flex; align-items: center; transition: all 0.2s; margin-bottom: 0.2rem; }
+.sidebar .nav-link:hover { background-color: var(--bg-main); color: var(--primary); transform: translateX(4px); }
+.sidebar .nav-link.active { background-color: rgba(0,122,255,0.08); color: var(--primary); font-weight: 700; }
+.sidebar .nav-link i { margin-right: 12px; font-size: 1.2rem; width: 20px; text-align: center; }
+
+/* Mobile Dashboard Sidebar Overlay */
+@media (max-width: 768px) {
+    .sidebar { position: fixed; transform: translateX(-100%); transition: transform 0.3s ease; }
+    .sidebar.show { transform: translateX(0); box-shadow: 5px 0 25px rgba(0,0,0,0.1); }
+    .split-layout { flex-direction: column; }
+    .split-right { padding: 1.5rem; }
+}

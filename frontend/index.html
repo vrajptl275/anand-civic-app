@@ -10,86 +10,98 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="index.html">
-                <i class="bi bi-building"></i> Anand Civic Issues
+    <!-- Island Navigation -->
+    <div class="container mt-3 mt-lg-4 pt-2 position-relative z-3">
+        <nav class="navbar navbar-expand-lg navbar-light bg-card rounded-pill px-3 px-lg-4 shadow-sm" style="background: rgba(255,255,255,0.9) !important; backdrop-filter: blur(12px);">
+            <a class="navbar-brand fw-bold" href="index.html">
+                <i class="bi bi-hexagon-fill text-primary me-2"></i> Anand Smart City
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#map-view">Live Map</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-outline-light ms-2" href="login.html">Login</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-primary-custom ms-2" href="register.html">Register</a></li>
+                <ul class="navbar-nav ms-auto align-items-center text-center mt-3 mt-lg-0">
+                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3" href="#how-it-works">How It Works</a></li>
+                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3" href="#map-view">Live Pulse Map</a></li>
+                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3 py-2" href="login.html">Sign In</a></li>
+                    <li class="nav-item d-none d-lg-block"><a class="nav-link btn btn-primary-custom ms-2 rounded-pill px-4 text-white" href="register.html">Get Started</a></li>
                 </ul>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </div>
 
-    <!-- Hero Section -->
-    <section id="home" class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h1 class="hero-title">Report Civic Issues <span>Easily</span></h1>
-                    <p class="hero-subtitle">Report civic issues directly to the municipal authorities. Track progress in real-time. Help build a better city for everyone.</p>
-                    <div class="d-flex gap-3">
-                        <a href="register.html" class="btn btn-primary-custom">
-                            <i class="bi bi-person-plus"></i> Register Now
+    <!-- Cinematic Hero Section -->
+    <section id="home" class="hero-section text-center position-relative overflow-visible" style="padding-top: 6rem; padding-bottom: 8rem;">
+        <div class="container position-relative z-1">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <span class="badge bg-white text-primary px-3 py-2 rounded-pill shadow-sm mb-4 fw-bold tracking-wider" style="letter-spacing: 1px;">
+                        <i class="bi bi-stars"></i> ANAND MUNICIPALITY V2.0
+                    </span>
+                    <h1 class="hero-title fw-bolder mb-4" style="font-size: clamp(3rem, 6vw, 5.5rem); letter-spacing: -2px; line-height: 1;">
+                        The Future of Civic <br><span class="text-primary">Engagement.</span>
+                    </h1>
+                    <p class="hero-subtitle lead text-muted px-md-5 mb-5 mx-auto" style="max-width: 600px; font-size: 1.15rem;">
+                        Directly connect with municipal authorities, report local issues instantly from your phone, and track the progress of a better Anand in real-time.
+                    </p>
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3 hero-action-buttons px-3 px-md-0">
+                        <a href="register.html" class="btn btn-primary-custom btn-lg rounded-pill px-5 shadow-sm d-flex align-items-center justify-content-center py-3">
+                            <i class="bi bi-lightning-charge-fill me-2 fs-5"></i> Start Reporting
                         </a>
-                        <a href="#map-view" class="btn btn-outline-custom">
-                            <i class="bi bi-map"></i> View Live Map
+                        <a href="#map-view" class="btn btn-outline-custom btn-lg rounded-pill px-4 bg-white shadow-sm border-0 text-dark d-flex align-items-center justify-content-center py-3">
+                            <i class="bi bi-map me-2 fs-5 text-primary"></i> View Pulse Map
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-6 text-center d-none d-lg-block">
-                    <img src="assets/img/hero.png" alt="Smart City Civic Reporting" class="img-fluid fade-in delay-2" style="max-width: 90%; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); transform: perspective(1000px) rotateY(-5deg) scale(1.02); transition: all 0.5s ease;" onmouseover="this.style.transform='perspective(1000px) rotateY(0deg) scale(1.05)'" onmouseout="this.style.transform='perspective(1000px) rotateY(-5deg) scale(1.02)'">
-                </div>
             </div>
+        </div>
+        
+        <!-- Abstract Background Glow -->
+        <div class="position-absolute top-50 start-50 translate-middle w-100 h-100" style="z-index: 0; pointer-events: none; opacity: 0.8;">
+            <div class="position-absolute rounded-circle" style="width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(0,122,255,0.08) 0%, rgba(255,255,255,0) 70%); top: -20%; left: 0%;"></div>
+            <div class="position-absolute rounded-circle" style="width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(52,199,89,0.05) 0%, rgba(255,255,255,0) 70%); bottom: -30%; right: -10%;"></div>
         </div>
     </section>
 
     <!-- Alert Container -->
-    <div id="alert-container" class="container mt-3"></div>
+    <div id="alert-container" class="container mt-2"></div>
 
-    <!-- How It Works -->
-    <section id="how-it-works" class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">How It Works</h2>
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="step-card">
-                        <div class="step-number">1</div>
-                        <h4>Report Issue</h4>
-                        <p class="text-muted">Snap a photo, add location, and describe the civic issue.</p>
+    <!-- Staggered "How It Works" Layout -->
+    <section id="how-it-works" class="py-5 position-relative bg-card">
+        <div class="container py-5">
+            <div class="text-center mb-5 pb-lg-3">
+                <h2 class="fw-bold display-6 letter-spacing-tight">Simple. Transparent. Fast.</h2>
+                <p class="text-muted">How your civic report travels from your phone to a resolved ticket.</p>
+            </div>
+            
+            <div class="row g-4 align-items-center px-2 px-md-0">
+                <!-- Staggered Deck -->
+                <div class="col-md-3 mt-md-0">
+                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative transition-bouncy" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">1</div>
+                        <h5 class="fw-bold mb-3">Report</h5>
+                        <p class="text-muted small mb-0 px-2">Snap a photo and geolocate the issue instantly.</p>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="step-card">
-                        <div class="step-number">2</div>
-                        <h4>Assign</h4>
-                        <p class="text-muted">Municipal authorities review and assign to the relevant department.</p>
+                <div class="col-md-3 mt-lg-5">
+                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">2</div>
+                        <h5 class="fw-bold mb-3">Assign</h5>
+                        <p class="text-muted small mb-0 px-2">Algorithms route your ticket to the exact dept.</p>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="step-card">
-                        <div class="step-number">3</div>
-                        <h4>Fix</h4>
-                        <p class="text-muted">Field officers work on the issue and upload completion photos.</p>
+                <div class="col-md-3 mt-md-0">
+                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">3</div>
+                        <h5 class="fw-bold mb-3">Resolve</h5>
+                        <p class="text-muted small mb-0 px-2">Field officers are deployed to physically fix it.</p>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="step-card">
-                        <div class="step-number">4</div>
-                        <h4>Complete</h4>
-                        <p class="text-muted">Issue resolved and closed. You can provide feedback!</p>
+                <div class="col-md-3 mt-lg-5">
+                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">4</div>
+                        <h5 class="fw-bold mb-3">Complete</h5>
+                        <p class="text-muted small mb-0 px-2">You receive live notifications with proof.</p>
                     </div>
                 </div>
             </div>
