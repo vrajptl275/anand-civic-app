@@ -1,5 +1,5 @@
 // Civic Issue Reporting System - Main JavaScript
-const API_BASE = 'https://YOUR_NEW_CLOUD_URL.onrender.com'; // CHANGE THIS when you deploy!
+const API_BASE = 'https://anand-civic-backend.onrender.com';
 
 // Global state
 let currentUser = null;
