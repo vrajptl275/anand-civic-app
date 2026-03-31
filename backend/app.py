@@ -1155,6 +1155,24 @@ def seed_data():
 def home():
     return redirect('/pages/home/index.html')
 
+
+@app.route('/api/proxy/overpass', methods=['POST'])
+def proxy_overpass():
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            'https://overpass-api.de/api/interpreter',
+            data=request.data,
+            headers={
+                'User-Agent': 'AnandCivicApp/1.0',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        )
+        with urllib.request.urlopen(req) as response:
+            return response.read(), response.getcode(), response.headers.items()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/mobile-app/<path:filename>')
 def serve_mobile_app(filename):
     return send_from_directory('../mobile-app', filename)

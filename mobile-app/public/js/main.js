@@ -502,7 +502,7 @@ function addComplaintMarkers(complaints) {
 
 async function fetchAndDisplayPlaces(targetMap) {
     if (!targetMap) targetMap = map; // fallback to global map
-    const overpassUrl = 'https://overpass-api.de/api/interpreter';
+    const overpassUrl = `${API_BASE}/api/proxy/overpass`;
     
     // Detailed query for Anand city places
     const query = `
