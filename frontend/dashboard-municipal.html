@@ -16,6 +16,9 @@
         
         <!-- Sidebar -->
         <nav id="sidebarMenu" class="sidebar bg-card border-end d-flex flex-column" style="width: 250px; z-index: 1040; flex-shrink: 0;">
+            <div class="d-md-none text-end p-2 pb-0">
+                <button class="btn border-0 text-muted" onclick="document.getElementById('sidebarMenu').classList.remove('show');"><i class="bi bi-x-lg fs-4"></i></button>
+            </div>
             <div class="p-4 border-bottom text-center d-none d-md-block">
                 <a href="index.html" class="text-decoration-none">
                     <i class="bi bi-hexagon-fill text-primary" style="font-size: 2.2rem;"></i>
@@ -25,42 +28,42 @@
             <div class="flex-grow-1 overflow-auto py-3 px-2">
                 <ul class="nav flex-column gap-1">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                        <a class="nav-link active" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('dashboard')">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('departments')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('departments')">
                             <i class="bi bi-diagram-3"></i> Departments
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('officers')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('officers')">
                             <i class="bi bi-people"></i> Officers
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('all-complaints')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('all-complaints')">
                             <i class="bi bi-list-task"></i> All Complaints
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('high-priority')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('high-priority')">
                             <i class="bi bi-exclamation-triangle"></i> High Priority
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('analytics')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('analytics')">
                             <i class="bi bi-graph-up"></i> Analytics
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('map')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('map')">
                             <i class="bi bi-map"></i> Map View
                         </a>
                     </li>
                     <li class="nav-item position-relative">
-                        <a class="nav-link" href="#" onclick="showSection('notifications')">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('notifications')">
                             <i class="bi bi-bell"></i> Notifications
                             <span class="notification-badge shadow-sm" id="notification-count" style="display: none; position: absolute; right: 15px; top: 12px; background: #ff3b30; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; font-weight: bold;">0</span>
                         </a>
@@ -74,6 +77,9 @@
             <!-- Top Header Profile Bar -->
             <header class="bg-card w-100 py-3 px-4 border-bottom d-flex justify-content-between align-items-center shadow-sm" style="z-index: 1030;">
                 <div class="d-flex align-items-center">
+                    <button class="btn btn-light d-md-none border-0 bg-transparent me-2" onclick="document.getElementById('sidebarMenu').classList.toggle('show');">
+                        <i class="bi bi-list" style="font-size: 1.8rem;"></i>
+                    </button>
                     <h4 class="mb-0 fw-bold d-none d-md-block text-dark tracking-tight">Municipal Command</h4>
                 </div>
                 <div class="header-profile d-flex align-items-center gap-3 ms-auto">
@@ -84,7 +90,7 @@
                             <i class="bi bi-chevron-down small text-muted ms-1" style="font-size: 0.75rem;"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border border-light rounded-4 mt-2">
-                            <li><a class="dropdown-item py-2 fw-medium" href="#" onclick="showSection('profile')"><i class="bi bi-person me-2 text-muted"></i> Admin Profile</a></li>
+                            <li><a class="dropdown-item py-2 fw-medium" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('profile')"><i class="bi bi-person me-2 text-muted"></i> Admin Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item py-2 fw-medium text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout</a></li>
                         </ul>
