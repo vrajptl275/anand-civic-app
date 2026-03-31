@@ -86,7 +86,13 @@
     }
   ],
   "prefer_related_applications": false,
-  "related_applications": [],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.example.app1",
+      "id": "com.example.app1"
+    }
+  ],
   "share_target": {
     "action": "./index.html",
     "method": "POST",
@@ -100,18 +106,28 @@
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "scope_extensions": [
     {
-      "origin": "https://anand-civic-backend.onrender.com"
+      "origin": "https://*.github.com"
+    },
+    {
+      "origin": "https://*.pwabuilder.com"
     }
   ],
   "widgets": [
     {
-      "name": "Civic Stats",
+      "name": "Civic Stats Dashboard",
       "short_name": "Stats",
       "description": "Civic Platform issue counters.",
       "tag": "civic-counter",
-      "ms_ac_template": "template.json",
-      "data": "data.json",
-      "type": "application/json"
+      "ms_ac_template": "https://anand-civic-backend.onrender.com/template.json",
+      "data": "https://anand-civic-backend.onrender.com/data.json",
+      "type": "application/json",
+      "auth_base_url": "https://anand-civic-backend.onrender.com/login",
+      "icons": [
+        {
+          "src": "icon.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "edge_side_panel": {
