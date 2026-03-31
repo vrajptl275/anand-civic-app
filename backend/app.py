@@ -1156,8 +1156,11 @@ def home():
     return redirect('/pages/home/index.html')
 
 
-@app.route('/api/proxy/overpass', methods=['POST'])
+@app.route('/api/proxy/overpass', methods=['POST', 'OPTIONS'])
 def proxy_overpass():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     import urllib.request
     try:
         req = urllib.request.Request(
@@ -1169,7 +1172,10 @@ def proxy_overpass():
             }
         )
         with urllib.request.urlopen(req) as response:
-            return response.read(), response.getcode(), response.headers.items()
+            body = response.read()
+            # ONLY return safe dictionary headers (Strip Transfer-Encoding to prevent App crash)
+            safe_headers = {k: v for k, v in response.headers.items() if k.lower() in ['content-type']}
+            return body, response.getcode(), safe_headers
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
