@@ -288,3 +288,71 @@ body {
 
 /* Profile Pic */
 .profile-image { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: var(--shadow-card); }
+
+/* ================== GLOBAL MOBILE UI OVERHAUL ================== */
+@media (max-width: 768px) {
+    /* Compress massive hero typography */
+    .hero-title {
+        font-size: 2.8rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        letter-spacing: -1px;
+    }
+    
+    /* Center align the entire hero banner */
+    .hero-section {
+        padding: 3.5rem 1rem !important;
+        text-align: center !important;
+    }
+    
+    /* Subtitle scaling */
+    .hero-subtitle {
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.5;
+    }
+    
+    /* Stack action buttons physically on top of each other */
+    .hero-section .d-flex.gap-3 {
+        flex-direction: column !important;
+        width: 100%;
+        gap: 1rem !important;
+    }
+    
+    .hero-section .btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    /* Reduce dashboard padding & stat blocks */
+    .container, .container-fluid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .stat-card {
+        padding: 1.5rem 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 2.4rem;
+    }
+    
+    /* Step Cards formatting */
+    .step-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Ensure tables can horizontally scroll cleanly */
+    .table-responsive {
+        border-radius: var(--radius-md);
+        box-shadow: none;
+    }
+}
