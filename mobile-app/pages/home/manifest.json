@@ -62,5 +62,62 @@
       "form_factor": "narrow",
       "label": "Mobile Complaint Tracker"
     }
-  ]
+  ],
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "text/plain": [
+          ".txt"
+        ],
+        "text/csv": [
+          ".csv"
+        ]
+      }
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+civic",
+      "url": "./index.html?action=%s"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "share_target": {
+    "action": "./index.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "description",
+      "url": "link"
+    }
+  },
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "scope_extensions": [
+    {
+      "origin": "https://anand-civic-backend.onrender.com"
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Civic Stats",
+      "short_name": "Stats",
+      "description": "Civic Platform issue counters.",
+      "tag": "civic-counter",
+      "ms_ac_template": "template.json",
+      "data": "data.json",
+      "type": "application/json"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "note_taking": {
+    "new_note_url": "./index.html?action=note"
+  }
 }
