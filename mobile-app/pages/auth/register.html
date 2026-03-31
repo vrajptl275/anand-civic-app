@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Anand Civic Issues</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="../../public/css/style.css?v=3.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-card">
@@ -23,7 +23,7 @@
         <!-- Form Side -->
         <div class="split-right py-5">
             <div class="form-container w-100 mx-auto" style="max-width: 500px;">
-                <a href="index.html" class="text-decoration-none d-block d-lg-none mb-4 h4 text-dark fw-bold">
+                <a href="../home/index.html" class="text-decoration-none d-block d-lg-none mb-4 h4 text-dark fw-bold">
                     <i class="bi bi-building text-primary"></i> Anand Civic
                 </a>
                 
@@ -85,7 +85,7 @@
                 
                 <div class="text-center pb-5">
                     <p class="text-muted">Already registered? 
-                        <a href="login.html" class="text-decoration-none fw-bold">Sign in here</a>
+                        <a href="../auth/login.html" class="text-decoration-none fw-bold">Sign in here</a>
                     </p>
                 </div>
             </div>
@@ -93,7 +93,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/main.js"></script>
+    <script src="../../public/js/main.js"></script>
     <script>
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -123,7 +123,7 @@
                 showAlert('Registration successful! Redirecting to login...', 'success');
                 
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = '../auth/login.html';
                 }, 1500);
             } else {
                 showAlert(result.error, 'danger');

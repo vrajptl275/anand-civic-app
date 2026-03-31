@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Officer Dashboard - Anand Civic Issues</title>
+    <title>Department Dashboard - Anand Civic Issues</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="../../public/css/style.css?v=3.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Modern App Shell Layout -->
@@ -19,7 +20,7 @@
                 <button class="btn border-0 text-muted" onclick="document.getElementById('sidebarMenu').classList.remove('show');"><i class="bi bi-x-lg fs-4"></i></button>
             </div>
             <div class="p-4 border-bottom text-center d-none d-md-block">
-                <a href="index.html" class="text-decoration-none">
+                <a href="../home/index.html" class="text-decoration-none">
                     <i class="bi bi-hexagon-fill text-primary" style="font-size: 2.2rem;"></i>
                     <h5 class="fw-bold mt-2 text-dark mb-0 tracking-tight">Anand Civic</h5>
                 </a>
@@ -32,13 +33,18 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('assigned')">
-                            <i class="bi bi-list-task"></i> Assigned Tasks
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('complaints')">
+                            <i class="bi bi-list-task"></i> Dept Complaints
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('update-status')">
-                            <i class="bi bi-pencil-square"></i> Update Status
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('assign')">
+                            <i class="bi bi-person-plus"></i> Assign Officer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('analytics')">
+                            <i class="bi bi-graph-up"></i> Analytics
                         </a>
                     </li>
                     <li class="nav-item position-relative">
@@ -59,13 +65,13 @@
                     <button class="btn btn-light d-md-none border-0 bg-transparent me-2" onclick="document.getElementById('sidebarMenu').classList.toggle('show');">
                         <i class="bi bi-list" style="font-size: 1.8rem;"></i>
                     </button>
-                    <h4 class="mb-0 fw-bold d-none d-md-block text-dark tracking-tight">Officer Portal</h4>
+                    <h4 class="mb-0 fw-bold d-none d-md-block text-dark tracking-tight">Department Portal</h4>
                 </div>
                 <div class="header-profile d-flex align-items-center gap-3 ms-auto">
                     <div class="dropdown">
                         <a href="#" class="d-flex align-items-center text-dark text-decoration-none px-3 py-2 bg-main rounded-pill transition-smooth" data-bs-toggle="dropdown" style="border: 1px solid var(--border-light);">
-                            <i class="bi bi-shield-lock-fill fs-5 me-2 text-primary"></i>
-                            <span id="user-name" class="fw-bold small me-1">Officer</span>
+                            <i class="bi bi-diagram-3-fill fs-5 me-2 text-primary"></i>
+                            <span id="user-name" class="fw-bold small me-1">Department</span>
                             <i class="bi bi-chevron-down small text-muted ms-1" style="font-size: 0.75rem;"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border border-light rounded-4 mt-2">
@@ -80,13 +86,13 @@
                 <div id="alert-container" class="mt-3"></div>
 
                 <section id="section-dashboard" class="dashboard-section">
-                    <h2 class="mt-4">Field Officer Dashboard</h2>
+                    <h2 class="mt-4">Department Dashboard</h2>
                     
                     <div class="row mt-4">
                         <div class="col-md-3">
                             <div class="stat-card">
                                 <div class="stat-number" id="stat-total">0</div>
-                                <div class="stat-label">Assigned</div>
+                                <div class="stat-label">Total</div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -103,34 +109,51 @@
                         </div>
                         <div class="col-md-3">
                             <div class="stat-card">
-                                <div class="stat-number" id="stat-completed">0</div>
-                                <div class="stat-label">Completed</div>
+                                <div class="stat-number" id="stat-resolved">0</div>
+                                <div class="stat-label">Resolved</div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="card mt-4">
-                        <div class="card-header"><h5 class="mb-0">My Tasks</h5></div>
+                        <div class="card-header"><h5 class="mb-0">Recent Complaints</h5></div>
                         <div class="card-body">
-                            <div id="tasks-list"></div>
+                            <div id="recent-list"></div>
                         </div>
                     </div>
                 </section>
 
-                <section id="section-assigned" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Assigned Tasks</h2>
+                <section id="section-complaints" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Department Complaints</h2>
                     <div class="card">
                         <div class="card-body">
-                            <div id="assigned-list"></div>
+                            <div id="all-complaints-list"></div>
                         </div>
                     </div>
                 </section>
 
-                <section id="section-update" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Update Status & Upload Proof</h2>
+                <section id="section-assign" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Assign Complaints</h2>
+                    <p class="text-muted">Assign pending complaints to officers</p>
                     <div class="card">
                         <div class="card-body">
-                            <div id="update-list"></div>
+                            <div id="assign-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-analytics" class="dashboard-section" style="display: none;">
+                    <h2 class="mt-4">Analytics</h2>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="priorityChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -138,39 +161,40 @@
         </main>
     </div>
 
-    <!-- Update Modal -->
-    <div class="modal fade" id="updateModal" tabindex="-1">
+    <div class="modal fade" id="assignModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Update Task</h5>
+                    <h5 class="modal-title">Assign to Officer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="update-status">
-                            <option value="in_progress">Start Working</option>
-                            <option value="completed">Mark Completed</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Remarks</label>
-                        <textarea class="form-control" id="update-remarks" rows="3" placeholder="Describe work done..."></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">After Photo</label>
-                        <input type="file" class="form-control" id="update-image" accept="image/*">
-                    </div>
+                    <select class="form-select" id="assign-officer"></select>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="submitUpdate()">Submit Update</button>
+                    <button class="btn btn-primary" onclick="confirmAssign()">Assign</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Complaint Detail Modal -->
+    
+    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="complaint-detail-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="modal fade" id="complaintDetailModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -190,14 +214,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/main.js"></script>
+    <script src="../../public/js/main.js"></script>
     <script>
         let selectedComplaintId = null;
         
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!checkAuth()) { window.location.href = 'login.html'; return; }
+            if (!checkAuth()) { window.location.href = '../auth/login.html'; return; }
             currentUser = JSON.parse(localStorage.getItem('user'));
-            if (currentUser.role !== 'officer') { window.location.href = 'login.html'; return; }
+            if (currentUser.role !== 'department') { window.location.href = '../auth/login.html'; return; }
             
             document.getElementById('user-name').textContent = currentUser.name;
             await loadData();
@@ -206,80 +230,108 @@
         async function loadData() {
             const stats = await getStats();
             document.getElementById('stat-total').textContent = stats.total || 0;
-            document.getElementById('stat-pending').textContent = (stats.by_status?.pending || 0) + (stats.by_status?.reassigned || 0);
+            document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
             document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
-            document.getElementById('stat-completed').textContent = stats.by_status?.completed || 0;
+            document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
             
             const complaints = await getComplaints();
-            renderTasks(complaints);
+            renderComplaints(complaints, 'recent-list');
+            renderComplaints(complaints, 'all-complaints-list');
+            
+            const pending = complaints.filter(c => c.status === 'pending' || c.status === 'assigned');
+            renderAssignList(pending);
+            
+            renderCharts(stats);
         }
 
-        function renderTasks(complaints) {
-            const containers = ['tasks-list', 'assigned-list', 'update-list'];
+        function renderComplaints(complaints, containerId) {
+            const container = document.getElementById(containerId);
+            if (!complaints.length) {
+                container.innerHTML = '<p class="text-muted">No complaints</p>';
+                return;
+            }
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card priority-${c.priority}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>${c.title}</h6>
+                            <p class="text-muted small">${c.description.substring(0, 80)}...</p>
+                            <small>${formatDate(c.created_at)}</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="status-${c.status}">${c.status}</span><br>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showComplaintDetail(${c.id})">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function renderAssignList(complaints) {
+            const container = document.getElementById('assign-list');
+            const officers = await getUsers('officer', currentUser.department_id);
             
             if (!complaints.length) {
-                containers.forEach(id => {
-                    document.getElementById(id).innerHTML = '<p class="text-muted">No tasks assigned</p>';
-                });
+                container.innerHTML = '<p class="text-muted">No complaints to assign</p>';
                 return;
             }
             
-            const html = complaints.map(c => `
-                <div class="complaint-card priority-${c.priority}">
+            container.innerHTML = complaints.map(c => `
+                <div class="complaint-card">
                     <div class="row">
-                        <div class="col-md-3">
-                            ${c.before_image ? 
-                                `<img src="${API_BASE}/uploads/before/${c.before_image}" class="complaint-image">` :
-                                `<div class="complaint-image bg-light d-flex align-items-center justify-content-center"><i class="bi bi-camera text-muted"></i></div>`
-                            }
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-8">
                             <h6>${c.title}</h6>
-                            <p class="text-muted small">${c.description.substring(0, 80)}...</p>
-                            <p class="small"><strong>Location:</strong> ${c.address || 'N/A'}</p>
-                            <small class="text-muted">Assigned: ${formatDate(c.assigned_at)}</small>
+                            <p class="text-muted small">${c.description.substring(0, 60)}...</p>
                         </div>
-                        <div class="col-md-3 text-end">
-                            <span class="status-${c.status}">${c.status}</span><br>
-                            <button class="btn btn-sm btn-info mt-2 me-1" onclick="showComplaintDetail(${c.id})">View</button>
-                            <button class="btn btn-sm btn-primary mt-2" onclick="openUpdateModal(${c.id})">Update</button>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-success" onclick="openAssignModal(${c.id})">Assign</button>
                         </div>
                     </div>
                 </div>
             `).join('');
             
-            containers.forEach(id => {
-                document.getElementById(id).innerHTML = html;
-            });
+            // Store officers for modal
+            window.deptOfficers = officers;
         }
 
-        function openUpdateModal(complaintId) {
+        function openAssignModal(complaintId) {
             selectedComplaintId = complaintId;
-            document.getElementById('update-status').value = 'in_progress';
-            document.getElementById('update-remarks').value = '';
-            document.getElementById('update-image').value = '';
-            new bootstrap.Modal(document.getElementById('updateModal')).show();
+            const select = document.getElementById('assign-officer');
+            select.innerHTML = window.deptOfficers.map(o => 
+                `<option value="${o.id}">${o.name}</option>`
+            ).join('');
+            new bootstrap.Modal(document.getElementById('assignModal')).show();
         }
 
-        async function submitUpdate() {
-            const status = document.getElementById('update-status').value;
-            const remarks = document.getElementById('update-remarks').value;
-            
-            const result = await updateComplaintStatus(selectedComplaintId, status, remarks);
-            
+        async function confirmAssign() {
+            const officerId = document.getElementById('assign-officer').value;
+            const result = await assignComplaint(selectedComplaintId, officerId);
             if (result.success) {
-                // Upload after image if provided
-                const imageFile = document.getElementById('update-image').files[0];
-                if (imageFile) {
-                    await uploadAfterImage(selectedComplaintId, imageFile);
-                }
-                
-                showAlert('Updated successfully!', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide();
+                showAlert('Assigned successfully!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
                 loadData();
             } else {
                 showAlert(result.error, 'danger');
             }
+        }
+
+        function renderCharts(stats) {
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.by_status || {}),
+                    datasets: [{ data: Object.values(stats.by_status || {}), backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78'] }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            new Chart(document.getElementById('priorityChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats.by_priority || {}),
+                    datasets: [{ label: 'By Priority', data: Object.values(stats.by_priority || {}), backgroundColor: ['#48bb78', '#ecc94b', '#f56565'] }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
         }
 
         function showSection(section) {

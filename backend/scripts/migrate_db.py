@@ -15,7 +15,7 @@ def migrate():
         print("Schema successfully pushed to PostgreSQL.")
 
     # 2. Connect to SQLite
-    sqlite_path = 'instance/app.db'
+    sqlite_path = '../data/instance/app.db'
     if not os.path.exists(sqlite_path):
         print(f"SQLite DB not found at {sqlite_path}. Nothing to migrate.")
         return

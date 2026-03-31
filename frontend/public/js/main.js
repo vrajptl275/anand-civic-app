@@ -1,5 +1,5 @@
 // Civic Issue Reporting System - Main JavaScript
-const API_BASE = 'https://anand-civic-backend.onrender.com';
+const API_BASE = ''; // Extremely powerful relative routing for the Cloud!
 
 // Global state
 let currentUser = null;
@@ -55,7 +55,7 @@ function logout() {
     currentUser = null;
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    window.location.href = 'index.html';
+    window.location.href = '../home/index.html';
 }
 
 function checkAuth() {
@@ -400,6 +400,7 @@ async function markNotificationRead(id) {
             method: 'PUT',
             headers: getAuthHeaders()
         });
+        await loadNotificationsAndBadges(); // Automatically refresh list and badge
     } catch (error) {
         console.error('Error marking notification read:', error);
     }
@@ -411,8 +412,53 @@ async function markAllNotificationsRead() {
             method: 'PUT',
             headers: getAuthHeaders()
         });
+        await loadNotificationsAndBadges(); // Refresh after clearing
     } catch (error) {
         console.error('Error marking all notifications read:', error);
+    }
+}
+
+// REAL-TIME NOTIFICATION POLLING ENGINE
+async function loadNotificationsAndBadges() {
+    if (!currentUser) return;
+    try {
+        const notifications = await getNotifications();
+        if (!notifications) return;
+        
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        
+        const badge = document.getElementById('notification-count');
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'inline-block';
+                badge.className = 'badge bg-danger rounded-pill ms-2 fade-in';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Dynamically inject notifications into the DOM section
+        const notifSection = document.getElementById('section-notifications');
+        if (notifSection) {
+            let html = '<div class="d-flex justify-content-between align-items-center mb-4">';
+            html += '<h2 class="mb-0">Your Notifications</h2>';
+            if (unreadCount > 0) {
+                html += '<button class="btn btn-sm btn-outline-custom" onclick="markAllNotificationsRead()">Mark all read</button>';
+            }
+            html += '</div>';
+            
+            if (notifications.length === 0) {
+                html += '<div class="alert alert-info-custom mt-4"><i class="bi bi-info-circle me-2"></i>You have no notifications.</div>';
+            } else {
+                html += '<div class="list-group mt-3 shadow-sm" style="border-radius: var(--radius-md); border: none;">';
+                html += notifications.map(n => renderNotification(n)).join('');
+                html += '</div>';
+            }
+            notifSection.innerHTML = html;
+        }
+    } catch (e) {
+        console.error('Polling Error:', e);
     }
 }
 
@@ -713,22 +759,37 @@ async function loadDashboardStats() {
 
 function renderDashboard() {
     if (!currentUser) {
-        window.location.href = 'index.html';
+        window.location.href = '../home/index.html';
         return;
     }
     
-    // Update UI
+    // Update UI based on role
     document.getElementById('user-name').textContent = currentUser.name;
-    document.getElementById('user-role').textContent = 'App Citizen';
+    document.getElementById('user-role').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
     
-    // Show citizen dashboard
+    // Hide/show menu items based on role
+    const menuItems = {
+        'citizen': ['nav-home', 'nav-report', 'nav-my-complaints', 'nav-notifications', 'nav-map', 'nav-profile'],
+        'municipal': ['nav-dashboard', 'nav-departments', 'nav-officers', 'nav-all-complaints', 'nav-analytics', 'nav-map', 'nav-settings', 'nav-profile'],
+        'department': ['nav-dashboard', 'nav-dept-complaints', 'nav-assign', 'nav-analytics', 'nav-profile'],
+        'officer': ['nav-dashboard', 'nav-assigned', 'nav-update', 'nav-profile']
+    };
+    
+    // Show appropriate dashboard
     document.querySelectorAll('.dashboard-section').forEach(section => {
         section.style.display = 'none';
     });
     
-    const dashboard = document.getElementById('dashboard-citizen');
+    const dashboardId = `dashboard-${currentUser.role}`;
+    const dashboard = document.getElementById(dashboardId);
     if (dashboard) {
         dashboard.style.display = 'block';
+    }
+    
+    // Initialize Real-Time Notification Engine Polling
+    loadNotificationsAndBadges();
+    if (!window.notificationInterval) {
+        window.notificationInterval = setInterval(loadNotificationsAndBadges, 30000); // Check every 30 seconds
     }
 }
 
@@ -942,25 +1003,153 @@ function renderActionButtons(complaint) {
             </div>
         `;
     }
-    
-    if (complaint.status === 'resolved') {
+
+    if (currentUser.role === 'municipal' || currentUser.role === 'department') {
+        let options = '<option value="">Select Action...</option>';
+        if (complaint.status === 'pending' || complaint.status === 'reopened') {
+            options += `
+                <option value="assigned">Assign to Officer</option>
+                <option value="in_progress">Start Progress</option>
+                <option value="resolved">Mark Resolved</option>
+                <option value="rejected">Reject Issue</option>
+            `;
+        } else if (complaint.status === 'completed') {
+            options += `
+                <option value="resolved">Approve & Mark Resolved</option>
+                <option value="reassigned">Reject Work & Reassign to Officer</option>
+            `;
+        } else if (complaint.status === 'assigned' || complaint.status === 'in_progress' || complaint.status === 'reassigned') {
+            return '<div class="mt-3 p-2 text-primary bg-light rounded text-center small border"><i class="bi bi-person-workspace"></i> Field Officer is currently working on this ticket. Action locked.</div>';
+        } else if (complaint.status === 'resolved') {
+            return '<div class="mt-3 p-2 text-success bg-light rounded text-center small border"><i class="bi bi-check2-circle"></i> Resolved. Waiting for Citizen approval.</div>';
+        } else if (complaint.status === 'rejected') {
+            return '<div class="mt-3 p-2 text-danger bg-light rounded text-center small border"><i class="bi bi-x-circle"></i> You have forcefully rejected this issue.</div>';
+        }
+
         return `
-            <div class="mt-3 p-3 rounded" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
-                <h6>Issue Resolution Feedback</h6>
-                <p class="small text-muted mb-2">The department has marked this resolved. Do you accept the work?</p>
-                <textarea id="citizen-feedback" class="form-control mb-2" placeholder="Add feedback before closing..." rows="2"></textarea>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-success flex-grow-1" onclick="submitCitizenFeedback(${complaint.id}, true)">Accept & Close Issue</button>
-                    <button class="btn btn-outline-danger" onclick="submitCitizenFeedback(${complaint.id}, false)">Reopen Issue</button>
-                </div>
+            <div class="mt-3">
+                <h6>Actions</h6>
+                <select id="action-status" class="form-select mb-2" onchange="handleStatusChange(${complaint.id}, this.value)">
+                    ${options}
+                </select>
+                <select id="action-priority" class="form-select" onchange="handlePriorityChange(${complaint.id}, this.value)">
+                    <option value="">Set Priority...</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
             </div>
         `;
+    }
+    
+    if (currentUser.role === 'officer' && complaint.officer_id === currentUser.id) {
+        if (complaint.status === 'assigned' || complaint.status === 'reassigned' || complaint.status === 'in_progress' || complaint.status === 'reopened') {
+            return `
+                <div class="mt-3">
+                    <h6>Update Status</h6>
+                    <select id="officer-status" class="form-select mb-2" onchange="handleOfficerStatusUpdate(${complaint.id}, this.value)">
+                        <option value="">Select Status...</option>
+                        <option value="in_progress">Start Working</option>
+                        <option value="completed">Complete Work</option>
+                    </select>
+                    <textarea id="officer-remarks" class="form-control mb-2" placeholder="Add remarks..."></textarea>
+                    <input type="file" id="after-image" class="form-control" accept="image/*">
+                    <button class="btn btn-primary mt-2" onclick="submitOfficerUpdate(${complaint.id})">Submit Update</button>
+                </div>
+            `;
+        } else {
+            return '<div class="mt-3 p-2 text-muted bg-light rounded text-center small border"><i class="bi bi-shield-lock"></i> Action securely locked. Pending review or already closed.</div>';
+        }
+    }
+    
+    if (currentUser.role === 'citizen' && complaint.citizen_id === currentUser.id) {
+        if (complaint.status === 'resolved') {
+            return `
+                <div class="mt-3 p-3 rounded" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                    <h6>Issue Resolution Feedback</h6>
+                    <p class="small text-muted mb-2">The department has marked this resolved. Do you accept the work?</p>
+                    <textarea id="citizen-feedback" class="form-control mb-2" placeholder="Add feedback before closing..." rows="2"></textarea>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success flex-grow-1" onclick="submitCitizenFeedback(${complaint.id}, true)">Accept & Close Issue</button>
+                        <button class="btn btn-outline-danger" onclick="submitCitizenFeedback(${complaint.id}, false)">Reopen Issue</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            return '<div class="mt-3 p-2 text-muted bg-light rounded text-center small border"><i class="bi bi-hourglass-split"></i> Issue is currently being processed by the system.</div>';
+        }
+    }
+    
+    return '';
+}
+
+async function handleStatusChange(id, status) {
+    if (!status) return;
+    
+    const result = await updateComplaintStatus(id, status);
+    if (result.success) {
+        showAlert('Status updated successfully', 'success');
+        location.reload();
     } else {
-        return '<div class="mt-3 p-2 text-muted bg-light rounded text-center small border"><i class="bi bi-hourglass-split"></i> Issue is currently being processed by the system.</div>';
+        showAlert(result.error, 'danger');
     }
 }
 
-// Admin action handlers removed from citizen app bundle for security
+async function handlePriorityChange(id, priority) {
+    if (!priority) return;
+    
+    const result = await updatePriority(id, priority);
+    if (result.success) {
+        showAlert('Priority updated successfully', 'success');
+    } else {
+        showAlert(result.error, 'danger');
+    }
+}
+
+async function handleOfficerStatusUpdate(id, status) {
+    if (!status) return;
+    
+    const remarks = document.getElementById('officer-remarks')?.value || '';
+    
+    const result = await updateComplaintStatus(id, status, remarks);
+    if (result.success) {
+        showAlert('Status updated successfully', 'success');
+        
+        // Upload after image if provided
+        const imageInput = document.getElementById('after-image');
+        if (imageInput && imageInput.files[0]) {
+            await uploadAfterImage(id, imageInput.files[0]);
+        }
+        
+        location.reload();
+    } else {
+        showAlert(result.error, 'danger');
+    }
+}
+
+async function submitOfficerUpdate(id) {
+    const status = document.getElementById('officer-status')?.value;
+    const remarks = document.getElementById('officer-remarks')?.value || '';
+    
+    if (!status) {
+        showAlert('Please select a status', 'warning');
+        return;
+    }
+    
+    const result = await updateComplaintStatus(id, status, remarks);
+    
+    if (result.success) {
+        const imageInput = document.getElementById('after-image');
+        if (imageInput && imageInput.files[0]) {
+            await uploadAfterImage(id, imageInput.files[0]);
+        }
+        
+        showAlert('Update submitted successfully', 'success');
+        location.reload();
+    } else {
+        showAlert(result.error, 'danger');
+    }
+}
 
 async function submitCitizenFeedback(id, accept) {
     const feedback = document.getElementById('citizen-feedback')?.value || (accept ? 'Accepted' : 'Not satisfied');
@@ -981,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if user is logged in for dashboard pages
     if (window.location.pathname.includes('dashboard')) {
         if (!checkAuth()) {
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
             return;
         }
         renderDashboard();

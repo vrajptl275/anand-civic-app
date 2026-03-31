@@ -3,7 +3,7 @@ Civic Issue Reporting System - Flask Backend
 Anand City, Gujarat, India
 """
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -15,7 +15,7 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv('config/.env')
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
@@ -23,9 +23,9 @@ CORS(app)
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'civic-issue-secret-key-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///data/instance/app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create upload directories
@@ -1153,7 +1153,7 @@ def seed_data():
 
 @app.route('/')
 def home():
-    return send_from_directory('../frontend', 'index.html')
+    return redirect('/pages/home/index.html')
 
 @app.route('/mobile-app/<path:filename>')
 def serve_mobile_app(filename):
