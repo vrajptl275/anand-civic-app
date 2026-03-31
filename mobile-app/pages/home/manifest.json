@@ -1,0 +1,18 @@
+{
+  "name": "Civic-Plus",
+  "short_name": "Civic+",
+  "description": "Anand City Civic Issue Reporting native App system.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3c72",
+  "icons": [
+    {
+      "src": "../../public/assets/img/hero.png",
+      "sizes": "192x192 256x256 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
