@@ -400,6 +400,7 @@ async function markNotificationRead(id) {
             method: 'PUT',
             headers: getAuthHeaders()
         });
+        await loadNotificationsAndBadges(); // Automatically refresh list and badge
     } catch (error) {
         console.error('Error marking notification read:', error);
     }
@@ -411,8 +412,53 @@ async function markAllNotificationsRead() {
             method: 'PUT',
             headers: getAuthHeaders()
         });
+        await loadNotificationsAndBadges(); // Refresh after clearing
     } catch (error) {
         console.error('Error marking all notifications read:', error);
+    }
+}
+
+// REAL-TIME NOTIFICATION POLLING ENGINE
+async function loadNotificationsAndBadges() {
+    if (!currentUser) return;
+    try {
+        const notifications = await getNotifications();
+        if (!notifications) return;
+        
+        const unreadCount = notifications.filter(n => !n.is_read).length;
+        
+        const badge = document.getElementById('notification-count');
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'inline-block';
+                badge.className = 'badge bg-danger rounded-pill ms-2 fade-in';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Dynamically inject notifications into the DOM section
+        const notifSection = document.getElementById('section-notifications');
+        if (notifSection) {
+            let html = '<div class="d-flex justify-content-between align-items-center mb-4">';
+            html += '<h2 class="mb-0">Your Notifications</h2>';
+            if (unreadCount > 0) {
+                html += '<button class="btn btn-sm btn-outline-custom" onclick="markAllNotificationsRead()">Mark all read</button>';
+            }
+            html += '</div>';
+            
+            if (notifications.length === 0) {
+                html += '<div class="alert alert-info-custom mt-4"><i class="bi bi-info-circle me-2"></i>You have no notifications.</div>';
+            } else {
+                html += '<div class="list-group mt-3 shadow-sm" style="border-radius: var(--radius-md); border: none;">';
+                html += notifications.map(n => renderNotification(n)).join('');
+                html += '</div>';
+            }
+            notifSection.innerHTML = html;
+        }
+    } catch (e) {
+        console.error('Polling Error:', e);
     }
 }
 
@@ -738,6 +784,12 @@ function renderDashboard() {
     const dashboard = document.getElementById(dashboardId);
     if (dashboard) {
         dashboard.style.display = 'block';
+    }
+    
+    // Initialize Real-Time Notification Engine Polling
+    loadNotificationsAndBadges();
+    if (!window.notificationInterval) {
+        window.notificationInterval = setInterval(loadNotificationsAndBadges, 30000); // Check every 30 seconds
     }
 }
 
