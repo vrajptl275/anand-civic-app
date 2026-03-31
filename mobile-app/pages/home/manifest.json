@@ -106,40 +106,6 @@
     }
   },
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
-  "scope_extensions": [
-    {
-      "origin": "*.onrender.com"
-    }
-  ],
-  "widgets": [
-    {
-      "name": "Civic Stats Dashboard",
-      "short_name": "Stats",
-      "description": "Civic Platform issue counters.",
-      "tag": "civic-counter",
-      "template_url": "https://anand-civic-backend.onrender.com/template.json",
-      "ms_ac_template": "https://anand-civic-backend.onrender.com/template.json",
-      "data": "https://anand-civic-backend.onrender.com/data.json",
-      "type": "application/json",
-      "auth_base_url": "https://anand-civic-backend.onrender.com/login",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192",
-          "type": "image/png",
-          "purpose": "any"
-        }
-      ],
-      "screenshots": [
-        {
-          "src": "screenshot-wide.png",
-          "sizes": "1920x1080",
-          "type": "image/png",
-          "label": "Widget View"
-        }
-      ]
-    }
-  ],
   "edge_side_panel": {
     "preferred_width": 400
   },
