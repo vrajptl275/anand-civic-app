@@ -1155,6 +1155,10 @@ def seed_data():
 def home():
     return send_from_directory('../frontend', 'index.html')
 
+@app.route('/mobile-app/<path:filename>')
+def serve_mobile_app(filename):
+    return send_from_directory('../mobile-app', filename)
+
 @app.route('/api')
 def api_info():
     return jsonify({
