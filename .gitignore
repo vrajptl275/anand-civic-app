@@ -21,3 +21,15 @@ backend/uploads/before/*
 backend/uploads/after/*
 !backend/uploads/before/.gitkeep
 !backend/uploads/after/.gitkeep
+backend/data/uploads/before/*
+backend/data/uploads/after/*
+backend/data/uploads/profiles/*
+!backend/data/uploads/before/.gitkeep
+!backend/data/uploads/after/.gitkeep
+!backend/data/uploads/profiles/.gitkeep
+
+# Logs
+backend/logs/
+
+# Temporary Local Code Constraint
+civic-native-app/

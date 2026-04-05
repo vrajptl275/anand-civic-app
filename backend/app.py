@@ -6,27 +6,84 @@ Anand City, Gujarat, India
 from flask import Flask, jsonify, request, send_from_directory, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from datetime import datetime, timedelta
+from flask_limiter import Limiter
+from datetime import datetime, timedelta, timezone
 import os
 import bcrypt
 import uuid
 import re
+import logging
+import jwt
+import base64
+import requests
+import mimetypes
 from functools import wraps
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
-load_dotenv('config/.env')
+def utcnow():
+    """Timezone-aware UTC now, avoids deprecation."""
+    return datetime.now(timezone.utc)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, 'config', '.env'))
+load_dotenv()
+
+
+def get_database_url():
+    """Resolve and normalize the database URL, preferring PostgreSQL when configured."""
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///data/instance/app.db').strip()
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    return database_url
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
-CORS(app)
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'civic-issue-secret-key-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///data/instance/app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'data/uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'data/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['TOKEN_EXPIRY_HOURS'] = int(os.environ.get('TOKEN_EXPIRY_HOURS', '24'))
+
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql://'):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+logging.basicConfig(
+    filename=os.path.join(LOG_DIR, 'app.log'),
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get(
+        'CORS_ORIGINS',
+        'http://localhost:3000,http://127.0.0.1:8001,http://localhost:8001'
+    ).split(',')
+    if origin.strip()
+]
+CORS(app, origins=allowed_origins)
+
+# Initialize rate limiter
+limiter = Limiter(app)
+
+if os.environ.get('FLASK_ENV') == 'production' and app.config['SECRET_KEY'] == 'civic-issue-secret-key-2024':
+    raise RuntimeError('SECRET_KEY must be set in production')
+
+# Create database directory for SQLite fallback
+db_path = app.config['SQLALCHEMY_DATABASE_URI']
+if db_path.startswith('sqlite:///'):
+    db_file_path = db_path.replace('sqlite:///', '')
+    db_dir = os.path.dirname(db_file_path)
+    os.makedirs(db_dir, exist_ok=True)
 
 # Create upload directories
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'before'), exist_ok=True)
@@ -57,14 +114,14 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     phone = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='citizen')  # citizen, municipal, department, officer
-    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    role = db.Column(db.String(20), nullable=False, default='citizen', index=True)  # citizen, municipal, department, officer
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=True, index=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
     
     # Relationships
     department = db.relationship('Department', back_populates='users', foreign_keys=[department_id])
@@ -98,8 +155,8 @@ class Department(db.Model):
     description = db.Column(db.Text)
     keywords = db.Column(db.Text)  # Comma-separated keywords for validation
     icon = db.Column(db.String(50), default='folder')
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
     
     # Relationships
     users = db.relationship('User', back_populates='department', foreign_keys='User.department_id')
@@ -122,9 +179,9 @@ class Complaint(db.Model):
     __tablename__ = 'complaints'
     
     id = db.Column(db.Integer, primary_key=True)
-    citizen_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
-    officer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    citizen_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False, index=True)
+    officer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
     
     # Issue details
     title = db.Column(db.String(200), nullable=False)
@@ -140,10 +197,14 @@ class Complaint(db.Model):
     before_image = db.Column(db.String(255))
     after_image = db.Column(db.String(255))
     
-    # Status workflow: pending -> assigned -> in_progress -> completed -> resolved -> closed
-    # If reopened: closed -> reopened -> in_progress -> ...
-    status = db.Column(db.String(20), default='pending')
-    priority = db.Column(db.String(20), default='medium')  # low, medium, high
+    # Status workflow: pending -> assigned -> in_progress -> completed -> resolved/reassigned -> closed
+    # Roles: Department=assign/reject/resolve/reassign, Officer=start/complete, Citizen=close/reopen, Municipal=view
+    status = db.Column(db.String(20), default='pending', index=True)
+    priority = db.Column(db.String(20), default='medium', index=True)  # low, medium, high
+    
+    # Deadline tracking
+    deadline_days = db.Column(db.Integer, default=7)  # Days allowed to resolve
+    deadline = db.Column(db.DateTime)  # Computed: assigned_at + deadline_days
     
     # Additional fields
     remarks = db.Column(db.Text)
@@ -151,14 +212,15 @@ class Complaint(db.Model):
     is_fake = db.Column(db.Boolean, default=False)  # Fake issue flag
     
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
     assigned_at = db.Column(db.DateTime)
     in_progress_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
     resolved_at = db.Column(db.DateTime)
     closed_at = db.Column(db.DateTime)
     reopened_at = db.Column(db.DateTime)
+    rejected_at = db.Column(db.DateTime)
     
     # Relationships
     citizen = db.relationship('User', foreign_keys=[citizen_id], back_populates='complaints_reported')
@@ -167,6 +229,11 @@ class Complaint(db.Model):
     notifications = db.relationship('Notification', back_populates='complaint')
     
     def to_dict(self, include_images=False):
+        # Compute overdue status
+        is_overdue = False
+        if self.deadline and self.status not in ('resolved', 'closed', 'rejected'):
+            is_overdue = utcnow() > self.deadline
+        
         data = {
             'id': self.id,
             'citizen_id': self.citizen_id,
@@ -184,6 +251,9 @@ class Complaint(db.Model):
             'address': self.address,
             'status': self.status,
             'priority': self.priority,
+            'deadline_days': self.deadline_days,
+            'deadline': self.deadline.isoformat() if self.deadline else None,
+            'is_overdue': is_overdue,
             'remarks': self.remarks,
             'citizen_feedback': self.citizen_feedback,
             'is_fake': self.is_fake,
@@ -194,7 +264,8 @@ class Complaint(db.Model):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,
             'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
             'closed_at': self.closed_at.isoformat() if self.closed_at else None,
-            'reopened_at': self.reopened_at.isoformat() if self.reopened_at else None
+            'reopened_at': self.reopened_at.isoformat() if self.reopened_at else None,
+            'rejected_at': self.rejected_at.isoformat() if self.rejected_at else None
         }
         if include_images:
             data['before_image'] = self.before_image
@@ -207,13 +278,13 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    complaint_id = db.Column(db.Integer, db.ForeignKey('complaints.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    complaint_id = db.Column(db.Integer, db.ForeignKey('complaints.id'), nullable=True, index=True)
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    type = db.Column(db.String(50), default='general')  # submitted, assigned, in_progress, completed, resolved, closed, reopened
-    is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    type = db.Column(db.String(50), default='general', index=True)  # submitted, assigned, in_progress, completed, resolved, closed, reopened
+    is_read = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
     
     # Relationships
     user = db.relationship('User', back_populates='notifications')
@@ -236,7 +307,7 @@ class Notification(db.Model):
 
 def validate_keywords(description, department_id):
     """Validate if description matches department keywords (fake issue detection)"""
-    department = Department.query.get(department_id)
+    department = db.session.get(Department, department_id)
     if not department or not department.keywords:
         return True  # No keywords = allow all
     
@@ -270,6 +341,13 @@ def send_notifications_to_role(role, complaint_id, title, message, notification_
         create_notification(user.id, complaint_id, title, message, notification_type)
 
 
+def _notify_department_users(department_id, complaint_id, title, message, notification_type):
+    """Send notifications to all department-role users of a specific department"""
+    users = User.query.filter_by(role='department', department_id=department_id, is_active=True).all()
+    for user in users:
+        create_notification(user.id, complaint_id, title, message, notification_type)
+
+
 def hash_password(password):
     """Hash password using bcrypt"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -280,6 +358,47 @@ def check_password(password, password_hash):
     return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
 
 
+def is_valid_email(email):
+    return bool(re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email or ''))
+
+
+def validate_password_strength(password):
+    return isinstance(password, str) and len(password) >= 6
+
+
+def validate_name(name):
+    return isinstance(name, str) and 2 <= len(name.strip()) <= 100
+
+
+def validate_phone(phone):
+    return isinstance(phone, str) and 7 <= len(phone.strip()) <= 20
+
+
+def validate_complaint_payload(title, description):
+    if not isinstance(title, str) or not 3 <= len(title.strip()) <= 200:
+        return 'Title must be between 3 and 200 characters'
+    if not isinstance(description, str) or not 10 <= len(description.strip()) <= 2000:
+        return 'Description must be between 10 and 2000 characters'
+    return None
+
+
+def create_access_token(user):
+    expires_at = utcnow() + timedelta(hours=app.config['TOKEN_EXPIRY_HOURS'])
+    payload = {
+        'sub': str(user.id),
+        'role': user.role,
+        'email': user.email,
+        'exp': expires_at,
+        'iat': utcnow()
+    }
+    token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+    return token, expires_at
+
+
+def decode_access_token(token):
+    return jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+
+
 def save_image(file, folder='before'):
     """Save uploaded image and return filename"""
     if file and file.filename:
@@ -288,6 +407,129 @@ def save_image(file, folder='before'):
         file.save(filepath)
         return filename
     return None
+
+
+def analyze_image_with_gemini(image_path, department_name, department_keywords):
+    """Analyze image using Gemini API to verify it matches department"""
+    api_key = (
+        os.environ.get('GEMINI_API_KEY')
+        or os.environ.get('GOOGLE_API_KEY')
+    )
+    if not api_key or api_key == 'your_gemini_api_key_here':
+        return {
+            'error': 'missing_api_key',
+            'message': 'Image analysis unavailable - set GEMINI_API_KEY or GOOGLE_API_KEY'
+        }
+
+    configured_model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash').strip() or 'gemini-2.5-flash'
+    candidate_models = []
+    for model_name in [configured_model, 'gemini-2.5-flash', 'gemini-2.0-flash']:
+        if model_name not in candidate_models:
+            candidate_models.append(model_name)
+    
+    try:
+        with open(image_path, 'rb') as image_file:
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+
+        mime_type = mimetypes.guess_type(image_path)[0] or 'image/jpeg'
+        if not mime_type.startswith('image/'):
+            mime_type = 'image/jpeg'
+        
+        prompt = f"""You are an image classifier for a civic issue reporting system.
+Department: {department_name}
+Keywords for this department: {department_keywords}
+
+Analyze the uploaded image and determine:
+1. Does this image match the department category? (e.g., if department is "Garbage & Sanitation", look for trash, waste, dirty areas, etc.)
+2. What category/issue do you see in the image?
+
+Respond ONLY in JSON format like this:
+{{
+  "is_match": true or false,
+  "detected_category": "what you see in the image",
+  "confidence": "high" or "medium" or "low",
+  "reason": "brief explanation"
+}}
+
+Important: Only return true for is_match if the image clearly shows issues related to the department keywords."""
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": mime_type, "data": image_data}}
+                ]
+            }],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 500,
+                "responseMimeType": "application/json"
+            }
+        }
+
+        last_error = None
+
+        for model_name in candidate_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            response = requests.post(url, json=payload, timeout=30)
+
+            if response.status_code == 404:
+                app.logger.warning('Gemini model %s returned 404, trying next fallback if available', model_name)
+                last_error = {
+                    'error': 'model_not_found',
+                    'message': f'Image analysis failed - Gemini model {model_name} was not found'
+                }
+                continue
+
+            if response.status_code != 200:
+                app.logger.error('Gemini API returned %s for model %s: %s', response.status_code, model_name, response.text[:500])
+                return {
+                    'error': 'api_error',
+                    'message': f'Image analysis failed - Gemini API returned {response.status_code} for {model_name}'
+                }
+
+            result = response.json()
+            candidates = result.get('candidates') or []
+            parts = (((candidates[0] or {}).get('content') or {}).get('parts') or []) if candidates else []
+            text = '\n'.join(part.get('text', '') for part in parts if isinstance(part, dict) and part.get('text')).strip()
+
+            if not text:
+                app.logger.error('Gemini API returned no text for model %s: %s', model_name, result)
+                return {
+                    'error': 'empty_response',
+                    'message': f'Image analysis failed - Gemini returned an empty response for {model_name}'
+                }
+
+            import json
+
+            if text.startswith('```'):
+                text = re.sub(r'^```(?:json)?\s*', '', text)
+                text = re.sub(r'\s*```$', '', text).strip()
+
+            json_match = re.search(r'\{.*\}', text, re.DOTALL)
+            if not json_match:
+                app.logger.error('Gemini response did not contain JSON for model %s: %s', model_name, text[:500])
+                return {
+                    'error': 'invalid_response',
+                    'message': f'Image analysis failed - Gemini returned an unreadable response for {model_name}'
+                }
+
+            parsed = json.loads(json_match.group())
+            parsed['message'] = parsed.get('message') or 'Image analysis completed'
+            parsed['model'] = model_name
+            return parsed
+
+        return last_error or {
+            'error': 'model_not_found',
+            'message': 'Image analysis failed - no compatible Gemini model was found'
+        }
+        
+    except Exception as e:
+        app.logger.error(f"Gemini API error: {str(e)}")
+        return {
+            'error': 'request_failed',
+            'message': f'Image analysis failed - {str(e)}'
+        }
 
 
 # ============== AUTH DECORATOR ==============
@@ -303,9 +545,16 @@ def token_required(f):
         # Remove 'Bearer ' prefix if present
         if token.startswith('Bearer '):
             token = token[7:]
-        
-        # For simplicity, we'll use email as token (in production, use JWT)
-        user = User.query.filter_by(email=token, is_active=True).first()
+
+        try:
+            payload = decode_access_token(token)
+            user_id = int(payload.get('sub'))
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except (jwt.InvalidTokenError, TypeError, ValueError):
+            return jsonify({'error': 'Invalid token'}), 401
+
+        user = User.query.filter_by(id=user_id, is_active=True).first()
         if not user:
             return jsonify({'error': 'Invalid token'}), 401
         
@@ -331,14 +580,24 @@ def role_required(*roles):
 # ============== AUTH ROUTES ==============
 
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("3 per minute")
 def register():
     """Citizen self-registration"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     required_fields = ['name', 'email', 'phone', 'password']
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
         return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+    if not validate_name(data['name']):
+        return jsonify({'error': 'Name must be between 2 and 100 characters'}), 400
+    if not is_valid_email(data['email']):
+        return jsonify({'error': 'Please provide a valid email address'}), 400
+    if not validate_phone(data['phone']):
+        return jsonify({'error': 'Phone number must be between 7 and 20 characters'}), 400
+    if not validate_password_strength(data['password']):
+        return jsonify({'error': 'Password must be at least 6 characters long'}), 400
     
     # Check if email already exists
     if User.query.filter_by(email=data['email']).first():
@@ -363,26 +622,33 @@ def register():
 
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     """Login for all user types"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Email and password required'}), 400
+        
+    email_clean = str(data['email']).strip()
+    if not is_valid_email(email_clean):
+        return jsonify({'error': 'Please provide a valid email address'}), 400
     
-    user = User.query.filter_by(email=data['email']).first()
+    user = User.query.filter_by(email=email_clean).first()
     
     if not user or not check_password(data['password'], user.password_hash):
         return jsonify({'error': 'Invalid email or password'}), 401
     
     if not user.is_active:
         return jsonify({'error': 'Account is deactivated'}), 401
-    
-    # Return user data (in production, return JWT token)
+
+    token, expires_at = create_access_token(user)
+
     return jsonify({
         'message': 'Login successful',
         'user': user.to_dict(),
-        'token': user.email  # Using email as simple token
+        'token': token,
+        'expires_at': expires_at.isoformat() + 'Z'
     })
 
 
@@ -418,12 +684,21 @@ def get_users():
 @role_required('municipal')
 def create_user():
     """Create department user or officer (municipal only)"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     required_fields = ['name', 'email', 'phone', 'password', 'role']
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
         return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+    if not validate_name(data['name']):
+        return jsonify({'error': 'Name must be between 2 and 100 characters'}), 400
+    if not is_valid_email(data['email']):
+        return jsonify({'error': 'Please provide a valid email address'}), 400
+    if not validate_phone(data['phone']):
+        return jsonify({'error': 'Phone number must be between 7 and 20 characters'}), 400
+    if not validate_password_strength(data['password']):
+        return jsonify({'error': 'Password must be at least 6 characters long'}), 400
     
     if data['role'] not in ['department', 'officer']:
         return jsonify({'error': 'Invalid role. Must be department or officer'}), 400
@@ -469,7 +744,7 @@ def update_user(id):
         user.password_hash = hash_password(data['password'])
     
     db.session.commit()
-    return jsonify({'message': 'User updated', 'user': user.to_dict()})
+    return jsonify({'success': True, 'message': 'User updated', 'user': user.to_dict()})
 
 
 @app.route('/api/users/<int:id>', methods=['DELETE'])
@@ -497,13 +772,19 @@ def get_departments():
 @role_required('municipal')
 def create_department():
     """Create department (municipal only)"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if not data.get('name'):
         return jsonify({'error': 'Department name required'}), 400
         
     if not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Department email and password required for login'}), 400
+    if not validate_name(data['name']):
+        return jsonify({'error': 'Department name must be between 2 and 100 characters'}), 400
+    if not is_valid_email(data['email']):
+        return jsonify({'error': 'Please provide a valid email address'}), 400
+    if not validate_password_strength(data['password']):
+        return jsonify({'error': 'Password must be at least 6 characters long'}), 400
         
     # Check if email is already registered
     if User.query.filter_by(email=data['email']).first():
@@ -532,6 +813,7 @@ def create_department():
     db.session.commit()
     
     return jsonify({
+        'success': True,
         'message': 'Department created',
         'department': department.to_dict()
     }), 201
@@ -567,8 +849,16 @@ def delete_department(id):
     """Deactivate department (municipal only)"""
     department = Department.query.get_or_404(id)
     department.is_active = False
+    
+    # Also deactivate associated department admin/officer users to revoke their login access
+    associated_users = User.query.filter_by(department_id=id).all()
+    for user_entry in associated_users:
+        if user_entry.is_active:
+            user_entry.is_active = False
+            user_entry.email = f"deleted_dept{id}_{user_entry.id}_{user_entry.email}"
+        
     db.session.commit()
-    return jsonify({'message': 'Department deactivated'})
+    return jsonify({'success': True, 'message': 'Department deactivated'})
 
 
 # ============== COMPLAINT ROUTES ==============
@@ -583,6 +873,10 @@ def get_complaints():
     status = request.args.get('status')
     department_id = request.args.get('department_id', type=int)
     priority = request.args.get('priority')
+    
+    # Pagination parameters
+    page = request.args.get('page', 1, type=int)
+    limit = min(request.args.get('limit', 50, type=int), 100)
     
     query = Complaint.query
     
@@ -603,8 +897,22 @@ def get_complaints():
     if priority:
         query = query.filter_by(priority=priority)
     
-    complaints = query.order_by(Complaint.created_at.desc()).all()
-    return jsonify([c.to_dict(include_images=True) for c in complaints])
+    # Get total count before pagination
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    complaints = query.order_by(Complaint.created_at.desc()).offset(offset).limit(limit).all()
+    
+    return jsonify({
+        'complaints': [c.to_dict(include_images=True) for c in complaints],
+        'pagination': {
+            'page': page,
+            'limit': limit,
+            'total': total,
+            'pages': (total + limit - 1) // limit
+        }
+    })
 
 
 @app.route('/api/complaints/<int:id>', methods=['GET'])
@@ -638,6 +946,20 @@ def create_complaint():
     # Validate required fields
     if not all([title, description, department_id, latitude, longitude]):
         return jsonify({'error': 'Missing required fields'}), 400
+
+    # Enhanced input validation
+    if not isinstance(department_id, int) or department_id <= 0:
+        return jsonify({'error': 'Invalid department ID'}), 400
+    
+    if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+        return jsonify({'error': 'Invalid GPS coordinates'}), 400
+    
+    if address and (not isinstance(address, str) or len(address.strip()) > 500):
+        return jsonify({'error': 'Address must be less than 500 characters'}), 400
+
+    validation_error = validate_complaint_payload(title, description)
+    if validation_error:
+        return jsonify({'error': validation_error}), 400
     
     # 1. GPS Boundary Validation - Anand check
     if not is_within_anand(latitude, longitude):
@@ -647,10 +969,36 @@ def create_complaint():
     if not validate_keywords(description, department_id):
         return jsonify({'error': 'Fake issue detected - description does not match selected department. Please select the correct department or provide a description matching the department keywords.'}), 400
     
-    # Save image
+    # Save image first (needed for analysis below)
     image_filename = None
     if before_image:
         image_filename = save_image(before_image, 'before')
+    
+    # 3. AI Image Analysis - Gemini check (optional warning)
+    analyze_image_flag = request.form.get('analyze_image', 'false').lower() == 'true'
+    image_analysis_result = None
+    
+    if before_image and analyze_image_flag and image_filename:
+        department = db.session.get(Department, department_id)
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'before', image_filename)
+        
+        image_analysis_result = analyze_image_with_gemini(
+            temp_path,
+            department.name if department else '',
+            department.keywords if department else ''
+        )
+        
+        if image_analysis_result and image_analysis_result.get('error'):
+            app.logger.warning('Skipping fake-image rejection during complaint submission: %s', image_analysis_result.get('message'))
+        elif image_analysis_result and not image_analysis_result.get('is_match', True):
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            return jsonify({
+                'error': 'Fake image detected',
+                'message': f'This image does not appear to be related to {department.name}. Please upload an image that shows the issue you are reporting.',
+                'detected_category': image_analysis_result.get('detected_category'),
+                'confidence': image_analysis_result.get('confidence')
+            }), 400
     
     # Create complaint
     complaint = Complaint(
@@ -669,12 +1017,20 @@ def create_complaint():
     db.session.add(complaint)
     db.session.commit()
     
-    # Create notification
+    # Notify citizen
     create_notification(
         request.current_user.id,
         complaint.id,
         'Complaint Submitted',
         f'Your complaint "{title}" has been submitted successfully.',
+        'submitted'
+    )
+    
+    # Notify the specific department
+    _notify_department_users(
+        department_id, complaint.id,
+        'New Complaint',
+        f'New complaint submitted: {title}. Please review and assign an officer.',
         'submitted'
     )
     
@@ -687,7 +1043,10 @@ def create_complaint():
         'submitted'
     )
     
+    db.session.commit()
+    
     return jsonify({
+        'success': True,
         'message': 'Complaint submitted successfully',
         'complaint': complaint.to_dict(include_images=True)
     }), 201
@@ -695,11 +1054,20 @@ def create_complaint():
 
 @app.route('/api/complaints/<int:id>/assign', methods=['POST'])
 @token_required
-@role_required('municipal', 'department')
+@role_required('department')
 def assign_complaint(id):
-    """Assign complaint to officer"""
+    """Assign/reassign complaint to officer (department only)"""
     complaint = Complaint.query.get_or_404(id)
     data = request.get_json()
+    user = request.current_user
+    
+    # Department can only assign their own complaints
+    if user.department_id != complaint.department_id:
+        return jsonify({'error': 'Not in your department'}), 403
+    
+    # Only allow assignment from valid statuses
+    if complaint.status not in ('pending', 'reopened', 'reassigned'):
+        return jsonify({'error': f'Cannot assign from status: {complaint.status}'}), 400
     
     officer_id = data.get('officer_id')
     if not officer_id:
@@ -713,31 +1081,46 @@ def assign_complaint(id):
     if officer.department_id != complaint.department_id:
         return jsonify({'error': 'Officer must be from the same department'}), 400
     
+    # Set deadline
+    deadline_days = data.get('deadline_days', 7)
+    if not isinstance(deadline_days, int) or deadline_days < 1:
+        deadline_days = 7
+    
+    now = utcnow()
     complaint.officer_id = officer_id
     complaint.status = 'assigned'
-    complaint.assigned_at = datetime.utcnow()
+    complaint.assigned_at = now
+    complaint.deadline_days = deadline_days
+    complaint.deadline = now + timedelta(days=deadline_days)
     
     db.session.commit()
     
     # Notify officer
     create_notification(
-        officer.id,
-        complaint.id,
+        officer.id, complaint.id,
         'Complaint Assigned',
-        f'You have been assigned to complaint: {complaint.title}',
+        f'You have been assigned to complaint: {complaint.title}. Deadline: {deadline_days} days.',
         'assigned'
     )
-    
     # Notify citizen
     create_notification(
-        complaint.citizen_id,
-        complaint.id,
+        complaint.citizen_id, complaint.id,
+        'Officer Assigned',
+        f'Your complaint "{complaint.title}" has been assigned to officer {officer.name}.',
+        'assigned'
+    )
+    # Notify all municipal users
+    send_notifications_to_role(
+        'municipal', complaint.id,
         'Complaint Assigned',
-        f'Your complaint has been assigned to an officer.',
+        f'Complaint "{complaint.title}" assigned to officer {officer.name} ({deadline_days}-day deadline).',
         'assigned'
     )
     
+    db.session.commit()
+    
     return jsonify({
+        'success': True,
         'message': 'Complaint assigned',
         'complaint': complaint.to_dict(include_images=True)
     })
@@ -745,66 +1128,120 @@ def assign_complaint(id):
 
 @app.route('/api/complaints/<int:id>/status', methods=['PUT'])
 @token_required
-@role_required('municipal', 'department', 'officer')
+@role_required('department', 'officer')
 def update_complaint_status(id):
-    """Update complaint status"""
+    """Update complaint status with strict role-based transition rules"""
     complaint = Complaint.query.get_or_404(id)
     data = request.get_json()
+    user = request.current_user
     
     new_status = data.get('status')
-    valid_statuses = ['pending', 'assigned', 'in_progress', 'completed', 'resolved', 'closed', 'reopened', 'rejected', 'reassigned']
     
+    # Closed complaints are permanently sealed
     if complaint.status == 'closed':
-        return jsonify({'error': 'Cannot update a permanently closed complaint'}), 400
-        
-    if new_status not in valid_statuses:
-        return jsonify({'error': 'Invalid status'}), 400
+        return jsonify({'error': 'This complaint is permanently closed. No changes allowed.'}), 400
     
-    # Role-based validation
-    user = request.current_user
-    if user.role == 'officer' and complaint.officer_id != user.id:
-        return jsonify({'error': 'Not assigned to this complaint'}), 403
+    # ─── STRICT ROLE→TRANSITION MATRIX ───────────────────────
+    # Officer: assigned→in_progress, in_progress→completed
+    # Department: pending→rejected, completed→resolved, completed→reassigned
     
-    if user.role == 'department' and complaint.department_id != user.department_id:
+    ALLOWED_TRANSITIONS = {
+        'officer': {
+            'assigned':    ['in_progress'],
+            'in_progress': ['completed'],
+        },
+        'department': {
+            'pending':    ['rejected'],
+            'completed':  ['resolved', 'reassigned'],
+        }
+    }
+    
+    role = user.role
+    current = complaint.status
+    allowed = ALLOWED_TRANSITIONS.get(role, {}).get(current, [])
+    
+    if new_status not in allowed:
+        return jsonify({'error': f'{role.title()} cannot change status from "{current}" to "{new_status}".'}), 400
+    
+    # ─── OWNERSHIP CHECKS ────────────────────────────────────
+    if role == 'officer' and complaint.officer_id != user.id:
+        return jsonify({'error': 'You are not assigned to this complaint'}), 403
+    if role == 'department' and user.department_id != complaint.department_id:
         return jsonify({'error': 'Not in your department'}), 403
     
-    # Update status with timestamp
+    # ─── APPLY STATUS + TIMESTAMPS ───────────────────────────
+    now = utcnow()
     complaint.status = new_status
     
     if new_status == 'in_progress':
-        complaint.in_progress_at = datetime.utcnow()
+        complaint.in_progress_at = now
     elif new_status == 'completed':
-        complaint.completed_at = datetime.utcnow()
-        # Handle after image upload
-        if 'after_image' in data:
-            complaint.after_image = data['after_image']
+        complaint.completed_at = now
     elif new_status == 'resolved':
-        complaint.resolved_at = datetime.utcnow()
-    elif new_status == 'closed':
-        complaint.closed_at = datetime.utcnow()
-    elif new_status == 'reopened':
-        complaint.reopened_at = datetime.utcnow()
+        complaint.resolved_at = now
+    elif new_status == 'rejected':
+        complaint.rejected_at = now
+    elif new_status == 'reassigned':
+        complaint.officer_id = None  # Unassign officer, department will re-assign
     
     # Update remarks if provided
-    if 'remarks' in data:
+    if data.get('remarks'):
         complaint.remarks = data['remarks']
     
     db.session.commit()
     
-    # Create notifications
+    # ─── COMPREHENSIVE NOTIFICATIONS ─────────────────────────
+    title_str = complaint.title
+    
     if new_status == 'in_progress':
-        create_notification(complaint.citizen_id, complaint.id, 'In Progress', 'Your complaint is now being worked on.', 'in_progress')
+        # Officer started → notify citizen, department, municipal
+        create_notification(complaint.citizen_id, complaint.id,
+            'Work Started', f'Work has started on your complaint: {title_str}', 'in_progress')
+        _notify_department_users(complaint.department_id, complaint.id,
+            'Work Started', f'Officer {user.name} has started working on: {title_str}', 'in_progress')
+        send_notifications_to_role('municipal', complaint.id,
+            'Work Started', f'Officer {user.name} started work on: {title_str}', 'in_progress')
+    
     elif new_status == 'completed':
-        create_notification(complaint.citizen_id, complaint.id, 'Completed', 'Your complaint has been completed. Please verify.', 'completed')
+        # Officer completed → notify citizen, department, municipal
+        create_notification(complaint.citizen_id, complaint.id,
+            'Issue Completed', f'Work has been completed on: {title_str}. Awaiting department review.', 'completed')
+        _notify_department_users(complaint.department_id, complaint.id,
+            'Issue Completed', f'Officer {user.name} has completed: {title_str}. Please review.', 'completed')
+        send_notifications_to_role('municipal', complaint.id,
+            'Issue Completed', f'Officer {user.name} completed: {title_str}', 'completed')
+    
     elif new_status == 'resolved':
-        create_notification(complaint.citizen_id, complaint.id, 'Resolved', 'Your complaint has been resolved.', 'resolved')
-    elif new_status == 'closed':
-        create_notification(complaint.citizen_id, complaint.id, 'Closed', 'Your complaint has been closed.', 'closed')
-    elif new_status == 'reopened':
-        send_notifications_to_role('municipal', complaint.id, 'Complaint Reopened', f'Complaint "{complaint.title}" has been reopened.', 'reopened')
+        # Department resolved → notify citizen, officer, municipal
+        create_notification(complaint.citizen_id, complaint.id,
+            'Issue Resolved', f'Your complaint "{title_str}" has been resolved. Please close or reopen it.', 'resolved')
+        if complaint.officer_id:
+            create_notification(complaint.officer_id, complaint.id,
+                'Issue Resolved', f'Complaint "{title_str}" has been resolved by department.', 'resolved')
+        send_notifications_to_role('municipal', complaint.id,
+            'Issue Resolved', f'Complaint "{title_str}" has been resolved by department.', 'resolved')
+    
+    elif new_status == 'rejected':
+        # Department rejected → notify citizen, municipal
+        reason = data.get('remarks', 'No reason provided')
+        create_notification(complaint.citizen_id, complaint.id,
+            'Issue Rejected', f'Your complaint "{title_str}" has been rejected. Reason: {reason}', 'rejected')
+        send_notifications_to_role('municipal', complaint.id,
+            'Issue Rejected', f'Complaint "{title_str}" rejected by department. Reason: {reason}', 'rejected')
+    
+    elif new_status == 'reassigned':
+        # Department reassigned → notify citizen, old officer, municipal
+        old_officer_name = complaint.officer.name if complaint.officer else 'Unknown'
+        create_notification(complaint.citizen_id, complaint.id,
+            'Issue Reassigned', f'Your complaint "{title_str}" is being reassigned for better resolution.', 'reassigned')
+        send_notifications_to_role('municipal', complaint.id,
+            'Issue Reassigned', f'Complaint "{title_str}" reassigned by department (was: {old_officer_name}).', 'reassigned')
+    
+    db.session.commit()
     
     return jsonify({
-        'message': 'Status updated',
+        'success': True,
+        'message': f'Status updated to {new_status}',
         'complaint': complaint.to_dict(include_images=True)
     })
 
@@ -834,37 +1271,63 @@ def update_priority(id):
 @token_required
 @role_required('citizen')
 def submit_feedback(id):
-    """Submit citizen feedback and optionally reopen"""
+    """Citizen closes or reopens a resolved complaint"""
     complaint = Complaint.query.get_or_404(id)
     data = request.get_json()
     
     if complaint.citizen_id != request.current_user.id:
         return jsonify({'error': 'Access denied'}), 403
     
-    complaint.citizen_feedback = data.get('feedback')
+    # Citizen can only act on RESOLVED complaints
+    if complaint.status != 'resolved':
+        return jsonify({'error': 'You can only close or reopen a resolved complaint.'}), 400
     
-    # If citizen not satisfied, reopen
+    complaint.citizen_feedback = data.get('feedback')
+    title_str = complaint.title
+    
     if data.get('reopen'):
+        # ── REOPEN ──
         complaint.status = 'reopened'
-        complaint.reopened_at = datetime.utcnow()
+        complaint.reopened_at = utcnow()
         
-        # Notify municipal
-        send_notifications_to_role(
-            'municipal',
-            complaint.id,
+        # Notify department
+        _notify_department_users(complaint.department_id, complaint.id,
             'Complaint Reopened',
-            f'Citizen has reopened complaint: {complaint.title}',
-            'reopened'
-        )
+            f'Citizen is not satisfied with "{title_str}". Please reassign.',
+            'reopened')
+        # Notify municipal
+        send_notifications_to_role('municipal', complaint.id,
+            'Complaint Reopened',
+            f'Citizen reopened complaint: {title_str}',
+            'reopened')
     else:
-        # If citizen is satisfied, permanently close the issue
+        # ── CLOSE (permanently) ──
         complaint.status = 'closed'
+        complaint.closed_at = utcnow()
+        
+        # Notify department
+        _notify_department_users(complaint.department_id, complaint.id,
+            'Complaint Closed',
+            f'Citizen has confirmed and closed: {title_str}. Issue fully resolved!',
+            'closed')
+        # Notify the officer who completed it
+        if complaint.officer_id:
+            create_notification(complaint.officer_id, complaint.id,
+                'Complaint Closed',
+                f'Great work! Complaint "{title_str}" has been closed by the citizen.',
+                'closed')
+        # Notify municipal
+        send_notifications_to_role('municipal', complaint.id,
+            'Complaint Closed',
+            f'Complaint "{title_str}" permanently closed by citizen.',
+            'closed')
     
     db.session.commit()
     
     return jsonify({
+        'success': True,
         'message': 'Feedback submitted',
-        'complaint': complaint.to_dict()
+        'complaint': complaint.to_dict(include_images=True)
     })
 
 
@@ -882,7 +1345,31 @@ def upload_after_image(id):
     if not after_image:
         return jsonify({'error': 'No image provided'}), 400
     
+    analyze_image_flag = request.form.get('analyze_image', 'true').lower() == 'true'
+    
     image_filename = save_image(after_image, 'after')
+    temp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'after', image_filename)
+    
+    if analyze_image_flag:
+        department = complaint.department
+        analysis_result = analyze_image_with_gemini(
+            temp_path,
+            department.name if department else '',
+            department.keywords if department else ''
+        )
+        
+        if analysis_result and analysis_result.get('error'):
+            app.logger.warning('Skipping fake-image rejection during completion upload: %s', analysis_result.get('message'))
+        elif analysis_result and not analysis_result.get('is_match', True):
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            return jsonify({
+                'error': 'Fake image detected',
+                'message': f'This image does not appear to show work completed for {department.name}. Please upload a proper completion photo.',
+                'detected_category': analysis_result.get('detected_category'),
+                'confidence': analysis_result.get('confidence')
+            }), 400
+    
     complaint.after_image = image_filename
     
     db.session.commit()
@@ -900,10 +1387,24 @@ def upload_after_image(id):
 def get_notifications():
     """Get user notifications"""
     user = request.current_user
-    notifications = Notification.query.filter_by(user_id=user.id).order_by(
-        Notification.created_at.desc()
-    ).limit(50).all()
-    return jsonify([n.to_dict() for n in notifications])
+    
+    page = request.args.get('page', 1, type=int)
+    limit = min(request.args.get('limit', 20, type=int), 50)
+    offset = (page - 1) * limit
+    
+    query = Notification.query.filter_by(user_id=user.id).order_by(Notification.created_at.desc())
+    total = query.count()
+    notifications = query.offset(offset).limit(limit).all()
+    
+    return jsonify({
+        'notifications': [n.to_dict() for n in notifications],
+        'pagination': {
+            'page': page,
+            'limit': limit,
+            'total': total,
+            'pages': (total + limit - 1) // limit
+        }
+    })
 
 
 @app.route('/api/notifications/<int:id>/read', methods=['PUT'])
@@ -935,6 +1436,37 @@ def mark_all_notifications_read():
 
 
 # ============== STATISTICS & ANALYTICS ROUTES ==============
+
+def build_public_stats():
+    """Get public stats using SQL aggregation (optimized)"""
+    from sqlalchemy import func
+    
+    total = db.session.query(func.count(Complaint.id)).scalar() or 0
+    
+    status_counts = db.session.query(
+        Complaint.status,
+        func.count(Complaint.id)
+    ).group_by(Complaint.status).all()
+    
+    by_status = {status: count for status, count in status_counts}
+    
+    resolved_total = (
+        by_status.get('resolved', 0) +
+        by_status.get('closed', 0) +
+        by_status.get('completed', 0)
+    )
+    
+    return {
+        'total': total,
+        'by_status': by_status,
+        'resolved_total': resolved_total
+    }
+
+
+@app.route('/api/stats/public', methods=['GET'])
+def get_public_stats():
+    """Public aggregate stats for the landing page"""
+    return jsonify(build_public_stats())
 
 @app.route('/api/stats', methods=['GET'])
 @token_required
@@ -1007,7 +1539,8 @@ def get_map_data():
     """Get complaints for map display"""
     status = request.args.get('status')
     
-    query = Complaint.query.filter(Complaint.status.in_(['pending', 'in_progress', 'closed']))
+    # Show both in-progress/resolved statuses for map display
+    query = Complaint.query.filter(Complaint.status.in_(['pending', 'in_progress', 'resolved', 'closed']))
     
     if status:
         query = query.filter_by(status=status)
@@ -1037,7 +1570,7 @@ def serve_upload(folder, filename):
 @app.route('/api/validate/location', methods=['POST'])
 def validate_location():
     """Validate if coordinates are within Anand"""
-    data = request.get_json()
+    data = request.get_json() or {}
     latitude = data.get('latitude')
     longitude = data.get('longitude')
     
@@ -1055,7 +1588,7 @@ def validate_location():
 @app.route('/api/validate/keywords', methods=['POST'])
 def validate_keywords_api():
     """Validate description against department keywords"""
-    data = request.get_json()
+    data = request.get_json() or {}
     description = data.get('description')
     department_id = data.get('department_id')
     
@@ -1070,9 +1603,63 @@ def validate_keywords_api():
     })
 
 
+@app.route('/api/analyze-image', methods=['POST'])
+@token_required
+def analyze_image():
+    """Analyze image using Gemini AI to verify it matches department"""
+    department_id = request.form.get('department_id', type=int)
+    image_file = request.files.get('image')
+    
+    if not department_id or not image_file:
+        return jsonify({'error': 'Department ID and image required'}), 400
+    
+    department = db.session.get(Department, department_id)
+    if not department:
+        return jsonify({'error': 'Invalid department'}), 400
+    
+    temp_filename = f"{uuid.uuid4()}_{secure_filename(image_file.filename)}"
+    temp_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+    image_file.save(temp_path)
+    
+    try:
+        result = analyze_image_with_gemini(
+            temp_path,
+            department.name,
+            department.keywords or ''
+        )
+        
+        if not result:
+            return jsonify({
+                'message': 'Image analysis failed - unknown error',
+                'is_match': None
+            }), 200
+
+        if result.get('error'):
+            return jsonify({
+                'message': result.get('message'),
+                'error': result.get('error'),
+                'is_match': None
+            }), 200
+        
+        return jsonify({
+            'is_match': result.get('is_match'),
+            'detected_category': result.get('detected_category'),
+            'confidence': result.get('confidence'),
+            'reason': result.get('reason'),
+            'model': result.get('model'),
+            'is_fake': not result.get('is_match', True)
+        })
+        
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
 # ============== SEED DATA ROUTES ==============
 
 @app.route('/api/seed', methods=['POST'])
+@token_required
+@role_required('municipal')
 def seed_data():
     """Seed initial data (for development)"""
     # Check if already seeded
@@ -1156,6 +1743,27 @@ def home():
     return redirect('/pages/home/index.html')
 
 
+# ============== HEALTH CHECK ==============
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint for load balancers and monitoring"""
+    try:
+        db.session.execute(db.text('SELECT 1'))
+        db_status = 'healthy'
+    except Exception as e:
+        db_status = f'unhealthy: {str(e)}'
+
+    status = 'ok' if db_status == 'healthy' else 'degraded'
+    status_code = 200 if status == 'ok' else 503
+
+    return jsonify({
+        'status': 'ok' if db_status == 'healthy' else 'degraded',
+        'database': db_status,
+        'timestamp': utcnow().isoformat()
+    }), status_code
+
+
 @app.route('/api/proxy/overpass', methods=['POST', 'OPTIONS'])
 def proxy_overpass():
     if request.method == 'OPTIONS':
@@ -1205,12 +1813,14 @@ def api_info():
 
 @app.errorhandler(404)
 def not_found(error):
+    app.logger.warning('404 for path %s', request.path)
     return jsonify({'error': 'Resource not found'}), 404
 
 
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
+    app.logger.exception('Unhandled server error on %s', request.path)
     return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -1220,18 +1830,29 @@ with app.app_context():
     # Execute unconditionally on cloud boot to ensure PostgreSQL tables exist
     db.create_all()
     
-    # Bootstrap Security: Ensure a Municipal Admin always exists in a fresh database
+    # Bootstrap Security: Ensure a Municipal Admin exists in a fresh database when explicitly configured
     from sqlalchemy.exc import ProgrammingError
     try:
         if not User.query.filter_by(role='municipal').first():
-            hashed_pw = hash_password('admin123')
-            admin = User(name='Anand Administrator', email='admin@anand.gov.in', phone='9999999999', password_hash=hashed_pw, role='municipal', is_active=True)
-            db.session.add(admin)
-            db.session.commit()
-            print("System Bootstrap: Default Municipal Admin created (admin@anand.gov.in / admin123)")
+            admin_email = os.environ.get('BOOTSTRAP_ADMIN_EMAIL')
+            admin_password = os.environ.get('BOOTSTRAP_ADMIN_PASSWORD')
+            admin_phone = os.environ.get('BOOTSTRAP_ADMIN_PHONE', '9999999999')
+            if admin_email and admin_password:
+                hashed_pw = hash_password(admin_password)
+                admin = User(name='Municipal Administrator', email=admin_email, phone=admin_phone, password_hash=hashed_pw, role='municipal', is_active=True)
+                db.session.add(admin)
+                db.session.commit()
+                print(f"System Bootstrap: Municipal Admin created ({admin_email})")
+            else:
+                print('WARNING: No municipal admin found. Set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD to initialize the first admin. If using existing DB, ignore this.')
     except Exception as e:
         db.session.rollback()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8001))
+    print("\n" + "="*50, flush=True)
+    print("🚀 ANAND CIVIC SERVER IS LIVE AND RUNNING!", flush=True)
+    print(f"🌐 LOCAL URL: http://127.0.0.1:{port}", flush=True)
+    print(f"➡️  CTRL+C to quit", flush=True)
+    print("="*50 + "\n", flush=True)
     app.run(host='0.0.0.0', port=port, debug=True)

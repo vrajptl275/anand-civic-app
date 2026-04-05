@@ -1,158 +1,624 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Department Dashboard - Anand Civic Issues</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://unpkg.com">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../public/css/style.css?v=3.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js loaded at bottom with defer -->
+
+    <style>
+        /* ─── Layout ─── */
+        :root {
+            --sidebar-w: 230px;
+            --header-h: 60px;
+            --transition: 0.22s ease;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .app-shell {
+            display: flex;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: var(--bg-main, #f8f9fa);
+        }
+
+        /* ─── Sidebar ─── */
+        .sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1040;
+            transition: transform var(--transition);
+            will-change: transform;
+            overflow: hidden;
+        }
+
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding: 0.5rem;
+        }
+
+        .sidebar-brand {
+            padding: 1rem 1rem 0.75rem;
+            border-bottom: 1px solid var(--border-light, #e9ecef);
+            text-align: center;
+        }
+
+        .nav-link {
+            border-radius: 8px;
+            padding: 0.55rem 0.9rem;
+            color: var(--text-muted, #6c757d);
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: background var(--transition), color var(--transition);
+            white-space: nowrap;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: var(--primary-light, rgba(212, 168, 67, 0.12));
+            color: var(--primary, #d4a843);
+        }
+
+        .nav-link i {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* Mobile backdrop */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1039;
+        }
+
+        .sidebar-backdrop.show {
+            display: block;
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        /* ─── Main ─── */
+        .main-area {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ─── Header ─── */
+        .top-header {
+            height: var(--header-h);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem 0 1.25rem;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            z-index: 1030;
+        }
+
+        .top-header .page-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        /* ─── Page Content ─── */
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .page-content {
+                padding: 1.5rem 1.75rem;
+            }
+        }
+
+        /* ─── Stats grid ─── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        @media (min-width: 576px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .stat-card {
+            border-radius: 14px;
+            padding: 1.1rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            border: 1px solid var(--border-light, #e9ecef);
+            background: var(--bg-card, #fff);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+
+        .stat-number {
+            font-size: 1.9rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted, #6c757d);
+            font-weight: 500;
+        }
+
+        /* ─── Complaint Cards ─── */
+        .complaint-card {
+            background: var(--bg-card, #fff);
+            border: 1px solid var(--border-light, #e9ecef);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            padding: 0.9rem 1rem;
+            border-left: 4px solid transparent;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow var(--transition);
+        }
+
+        .complaint-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .complaint-card.priority-high {
+            border-left-color: #f56565;
+        }
+
+        .complaint-card.priority-medium {
+            border-left-color: #ecc94b;
+        }
+
+        .complaint-card.priority-low {
+            border-left-color: #48bb78;
+        }
+
+        /* Card content: stack on mobile, row on sm+ */
+        .complaint-card-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        @media (min-width: 540px) {
+            .complaint-card-inner {
+                flex-direction: row;
+                align-items: flex-start;
+                justify-content: space-between;
+            }
+        }
+
+        .complaint-card-actions {
+            display: flex;
+            gap: 0.4rem;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 540px) {
+            .complaint-card-actions {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+        }
+
+        /* ─── Status/Priority badges ─── */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background: #fefcbf;
+            color: #b7791f;
+        }
+
+        .status-assigned {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+
+        .status-in_progress {
+            background: #fbd38d;
+            color: #744210;
+        }
+
+        .status-completed {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .status-resolved {
+            background: #b2f5ea;
+            color: #234e52;
+        }
+
+        .status-closed {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .status-reassigned {
+            background: #e9d8fd;
+            color: #553c9a;
+        }
+
+        .status-rejected {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+
+        .status-reopened {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .overdue-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            background: #f56565;
+            color: #fff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .deadline-info {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .deadline-info.overdue {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+
+        /* ─── Assign card (simpler, no left border) ─── */
+        .assign-card {
+            background: var(--bg-card, #fff);
+            border: 1px solid var(--border-light, #e9ecef);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        /* ─── Charts ─── */
+        .chart-container {
+            background: var(--bg-card, #fff);
+            border: 1px solid var(--border-light, #e9ecef);
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        /* ─── Notification items ─── */
+        .notif-item {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border-light, #e9ecef);
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item.unread {
+            background: var(--primary-light, rgba(212, 168, 67, 0.12));
+        }
+
+        /* ─── Notification badge ─── */
+        .notif-badge {
+            position: absolute;
+            right: 12px;
+            top: 10px;
+            background: #ff3b30;
+            color: #fff;
+            border-radius: 999px;
+            padding: 1px 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: none;
+        }
+
+        /* ─── Section visibility ─── */
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        /* ─── Cards ─── */
+        .card {
+            border-radius: 14px;
+            border: 1px solid var(--border-light, #e9ecef);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            border-radius: 14px 14px 0 0 !important;
+            background: var(--bg-main, #f8f9fa);
+            font-weight: 600;
+        }
+
+        /* ─── Spinner ─── */
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #dee2e6;
+            border-top-color: var(--bs-primary, #0d6efd);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <!-- Modern App Shell Layout -->
-    <div class="d-flex" style="height: 100vh; overflow: hidden; background-color: var(--bg-main);">
-        
-        <!-- Sidebar -->
-        <nav id="sidebarMenu" class="sidebar bg-card border-end d-flex flex-column" style="width: 250px; z-index: 1040; flex-shrink: 0;">
-            <div class="d-md-none text-end p-2 pb-0">
-                <button class="btn border-0 text-muted" onclick="document.getElementById('sidebarMenu').classList.remove('show');"><i class="bi bi-x-lg fs-4"></i></button>
-            </div>
-            <div class="p-4 border-bottom text-center d-none d-md-block">
-                <a href="../home/index.html" class="text-decoration-none">
-                    <i class="bi bi-hexagon-fill text-primary" style="font-size: 2.2rem;"></i>
-                    <h5 class="fw-bold mt-2 text-dark mb-0 tracking-tight">Anand Civic</h5>
+    <div class="app-shell">
+
+        <!-- Mobile backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+        <!-- ── Sidebar ── -->
+        <nav id="sidebarMenu" class="sidebar bg-white border-end">
+            <!-- Brand (desktop) -->
+            <div class="sidebar-brand d-none d-md-block">
+                <a href="../home/index.html" class="text-decoration-none d-flex flex-column align-items-center">
+                    <i class="bi bi-hexagon-fill text-primary" style="font-size:2rem;"></i>
+                    <span class="fw-bold mt-1 text-dark" style="font-size:1rem;">Anand Civic</span>
                 </a>
             </div>
-            <div class="flex-grow-1 overflow-auto py-3 px-2">
-                <ul class="nav flex-column gap-1">
+            <!-- Mobile close row -->
+            <div class="d-flex d-md-none align-items-center justify-content-between px-3 pt-3 pb-2">
+                <span class="fw-bold text-dark">Anand Civic</span>
+                <button class="btn btn-sm border-0 text-muted" onclick="closeSidebar()" aria-label="Close menu">
+                    <i class="bi bi-x-lg fs-5"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-body">
+                <ul class="nav flex-column gap-1" id="sidebarNav">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('dashboard')">
+                        <a class="nav-link active" href="#" data-section="dashboard"
+                            onclick="handleNav(event,'dashboard')">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('complaints')">
+                        <a class="nav-link" href="#" data-section="complaints" onclick="handleNav(event,'complaints')">
                             <i class="bi bi-list-task"></i> Dept Complaints
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('assign')">
+                        <a class="nav-link" href="#" data-section="assign" onclick="handleNav(event,'assign')">
                             <i class="bi bi-person-plus"></i> Assign Officer
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('analytics')">
+                        <a class="nav-link" href="#" data-section="analytics" onclick="handleNav(event,'analytics')">
                             <i class="bi bi-graph-up"></i> Analytics
                         </a>
                     </li>
                     <li class="nav-item position-relative">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('notifications')">
+                        <a class="nav-link" href="#" data-section="notifications"
+                            onclick="handleNav(event,'notifications')">
                             <i class="bi bi-bell"></i> Notifications
-                            <span class="notification-badge shadow-sm" id="notification-count" style="display: none; position: absolute; right: 15px; top: 12px; background: #ff3b30; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; font-weight: bold;">0</span>
+                            <span class="notif-badge" id="notification-count">0</span>
                         </a>
                     </li>
                 </ul>
             </div>
         </nav>
 
-        <!-- Main Workspace Area -->
-        <main class="flex-grow-1 d-flex flex-column" style="overflow: hidden; width: 0;">
-            <!-- Top Header Profile Bar -->
-            <header class="bg-card w-100 py-3 px-4 border-bottom d-flex justify-content-between align-items-center shadow-sm" style="z-index: 1030;">
-                <div class="d-flex align-items-center">
-                    <button class="btn btn-light d-md-none border-0 bg-transparent me-2" onclick="document.getElementById('sidebarMenu').classList.toggle('show');">
-                        <i class="bi bi-list" style="font-size: 1.8rem;"></i>
+        <!-- ── Main Area ── -->
+        <main class="main-area">
+            <!-- Header -->
+            <header class="top-header bg-white border-bottom shadow-sm">
+                <button class="btn btn-sm border-0 d-md-none text-muted p-1 me-1" onclick="openSidebar()"
+                    aria-label="Open menu">
+                    <i class="bi bi-list" style="font-size:1.7rem;"></i>
+                </button>
+                <h1 class="page-title text-dark d-none d-md-block">Department Portal</h1>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+                        <i class="bi bi-moon-stars-fill"></i>
                     </button>
-                    <h4 class="mb-0 fw-bold d-none d-md-block text-dark tracking-tight">Department Portal</h4>
-                </div>
-                <div class="header-profile d-flex align-items-center gap-3 ms-auto">
                     <div class="dropdown">
-                        <a href="#" class="d-flex align-items-center text-dark text-decoration-none px-3 py-2 bg-main rounded-pill transition-smooth" data-bs-toggle="dropdown" style="border: 1px solid var(--border-light);">
+                        <a href="#"
+                            class="d-flex align-items-center text-dark text-decoration-none px-3 py-2 rounded-pill border"
+                            style="font-size:0.9rem;" data-bs-toggle="dropdown">
                             <i class="bi bi-diagram-3-fill fs-5 me-2 text-primary"></i>
-                            <span id="user-name" class="fw-bold small me-1">Department</span>
-                            <i class="bi bi-chevron-down small text-muted ms-1" style="font-size: 0.75rem;"></i>
+                            <span id="user-name" class="fw-bold me-1">Department</span>
+                            <i class="bi bi-chevron-down small text-muted"></i>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border border-light rounded-4 mt-2">
-                            <li><a class="dropdown-item py-2 fw-medium text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border rounded-4 mt-2"
+                            style="min-width:160px;">
+                            <li>
+                                <a class="dropdown-item py-2 text-danger" href="#" onclick="logout()">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
             </header>
 
-            <!-- Scrollable Page Content -->
-            <div class="flex-grow-1 overflow-auto p-3 p-md-4 position-relative">
-                <div id="alert-container" class="mt-3"></div>
+            <!-- Page Content -->
+            <div class="page-content" id="pageContent">
+                <div id="alert-container"></div>
 
-                <section id="section-dashboard" class="dashboard-section">
-                    <h2 class="mt-4">Department Dashboard</h2>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number" id="stat-total">0</div>
-                                <div class="stat-label">Total</div>
-                            </div>
+                <!-- ── Dashboard Section ── -->
+                <section id="section-dashboard" class="dashboard-section active">
+                    <h2 class="mt-2 mb-3">Department Dashboard</h2>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="bi bi-file-earmark-text stat-icon text-primary"></i>
+                            <div class="stat-number" id="stat-total">0</div>
+                            <div class="stat-label">Total</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number" id="stat-pending">0</div>
-                                <div class="stat-label">Pending</div>
-                            </div>
+                        <div class="stat-card">
+                            <i class="bi bi-hourglass-split stat-icon text-warning"></i>
+                            <div class="stat-number" id="stat-pending">0</div>
+                            <div class="stat-label">Pending</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number" id="stat-progress">0</div>
-                                <div class="stat-label">In Progress</div>
-                            </div>
+                        <div class="stat-card">
+                            <i class="bi bi-arrow-repeat stat-icon text-info"></i>
+                            <div class="stat-number" id="stat-progress">0</div>
+                            <div class="stat-label">In Progress</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number" id="stat-resolved">0</div>
-                                <div class="stat-label">Resolved</div>
-                            </div>
+                        <div class="stat-card">
+                            <i class="bi bi-check-circle stat-icon text-success"></i>
+                            <div class="stat-number" id="stat-resolved">0</div>
+                            <div class="stat-label">Resolved</div>
                         </div>
                     </div>
-                    
-                    <div class="card mt-4">
-                        <div class="card-header"><h5 class="mb-0">Recent Complaints</h5></div>
+
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0">Recent Complaints</h5>
+                            <a href="#" class="small text-primary text-decoration-none"
+                                onclick="handleNav(event,'complaints')">
+                                View all <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
                         <div class="card-body">
-                            <div id="recent-list"></div>
+                            <div id="recent-list">
+                                <div class="text-center py-5">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section id="section-complaints" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Department Complaints</h2>
+                <!-- ── Dept Complaints Section ── -->
+                <section id="section-complaints" class="dashboard-section">
+                    <h2 class="mt-2 mb-3">Department Complaints</h2>
                     <div class="card">
                         <div class="card-body">
-                            <div id="all-complaints-list"></div>
+                            <div id="all-complaints-list">
+                                <div class="text-center py-5">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section id="section-assign" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Assign Complaints</h2>
-                    <p class="text-muted">Assign pending complaints to officers</p>
+                <!-- ── Assign Section ── -->
+                <section id="section-assign" class="dashboard-section">
+                    <h2 class="mt-2 mb-1">Assign Complaints</h2>
+                    <p class="text-muted mb-3">Assign pending complaints to department officers.</p>
                     <div class="card">
                         <div class="card-body">
-                            <div id="assign-list"></div>
+                            <div id="assign-list">
+                                <div class="text-center py-5">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                <section id="section-analytics" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Analytics</h2>
-                    <div class="row mt-4">
-                        <div class="col-md-6">
+                <!-- ── Analytics Section ── -->
+                <section id="section-analytics" class="dashboard-section">
+                    <h2 class="mt-2 mb-3">Analytics</h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
                             <div class="chart-container">
+                                <h6 class="fw-semibold mb-3">Complaints by Status</h6>
                                 <canvas id="statusChart"></canvas>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="chart-container">
+                                <h6 class="fw-semibold mb-3">Complaints by Priority</h6>
                                 <canvas id="priorityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Notifications Section ── -->
+                <section id="section-notifications" class="dashboard-section">
+                    <h2 class="mt-2 mb-3">Notifications</h2>
+                    <div class="card">
+                        <div id="notifications-panel">
+                            <div class="text-center py-5">
+                                <div class="spinner"></div>
                             </div>
                         </div>
                     </div>
@@ -161,49 +627,53 @@
         </main>
     </div>
 
+    <!-- ── Assign Officer Modal ── -->
     <div class="modal fade" id="assignModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Assign to Officer</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <select class="form-select" id="assign-officer"></select>
+                    <label class="form-label fw-semibold mb-2">Select Officer</label>
+                    <select class="form-select" id="assign-officer">
+                        <option value="" disabled selected>Choose an officer…</option>
+                    </select>
+                    <p class="form-text mt-2 mb-0">Only active officers from your department are shown.</p>
+
+                    <label class="form-label fw-semibold mb-2 mt-3">Deadline (Days)</label>
+                    <select class="form-select" id="assign-deadline">
+                        <option value="3">3 days</option>
+                        <option value="5">5 days</option>
+                        <option value="7" selected>7 days (default)</option>
+                        <option value="14">14 days</option>
+                        <option value="30">30 days</option>
+                    </select>
+                    <p class="form-text mt-1 mb-0">Officer must complete within this deadline.</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="confirmAssign()">Assign</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" id="confirm-assign-btn" onclick="confirmAssign()">
+                        <i class="bi bi-person-check me-1"></i>Assign
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- ── Complaint Detail Modal ── -->
     <div class="modal fade" id="complaintDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Complaint Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="complaint-detail-content">
-                    <!-- Content loaded dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Complaint Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="complaint-detail-content">
-                    <!-- Content loaded dynamically -->
+                    <div class="text-center py-4">
+                        <div class="spinner"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -212,132 +682,434 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <script src="../../public/js/main.js"></script>
     <script>
+        /* ── State ── */
         let selectedComplaintId = null;
-        
+        let chartsRendered = false;
+
+        /* ── Sidebar helpers ── */
+        function openSidebar() {
+            document.getElementById('sidebarMenu').classList.add('show');
+            document.getElementById('sidebarBackdrop').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeSidebar() {
+            document.getElementById('sidebarMenu').classList.remove('show');
+            document.getElementById('sidebarBackdrop').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        /* ── Navigation ── */
+        function handleNav(e, section) {
+            e.preventDefault();
+            closeSidebar();
+            showSection(section);
+            document.querySelectorAll('#sidebarNav .nav-link').forEach(el => {
+                el.classList.toggle('active', el.dataset.section === section);
+            });
+        }
+
+        /* ── Init ── */
         document.addEventListener('DOMContentLoaded', async () => {
             if (!checkAuth()) { window.location.href = '../auth/login.html'; return; }
             currentUser = JSON.parse(localStorage.getItem('user'));
             if (currentUser.role !== 'department') { window.location.href = '../auth/login.html'; return; }
-            
+
             document.getElementById('user-name').textContent = currentUser.name;
-            await loadData();
+
+            // Parallel load
+            await Promise.all([loadDepartmentData(), loadNotificationsAndBadges()]);
         });
 
-        async function loadData() {
-            const stats = await getStats();
+        /* ── Data Loading ── */
+        async function loadDepartmentData() {
+            const [stats, complaints] = await Promise.all([getStats(), getComplaints()]);
+
+            // Stats
             document.getElementById('stat-total').textContent = stats.total || 0;
             document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
             document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
             document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
-            
-            const complaints = await getComplaints();
-            renderComplaints(complaints, 'recent-list');
+
+            // Recent (first 8)
+            renderComplaints(complaints.slice(0, 8), 'recent-list');
+
+            // All complaints
             renderComplaints(complaints, 'all-complaints-list');
-            
-            const pending = complaints.filter(c => c.status === 'pending' || c.status === 'assigned');
-            renderAssignList(pending);
-            
+
+            // Assign list (pending/reopened/reassigned — assignable statuses)
+            const assignable = complaints.filter(c => ['pending', 'reopened', 'reassigned'].includes(c.status));
+            renderAssignList(assignable);
+
+            // Charts (lazy, once only)
             renderCharts(stats);
         }
 
+        /* ── Render Complaints ── */
         function renderComplaints(complaints, containerId) {
             const container = document.getElementById(containerId);
-            if (!complaints.length) {
-                container.innerHTML = '<p class="text-muted">No complaints</p>';
+            if (!complaints || !complaints.length) {
+                container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                    <p class="mb-0">No complaints found</p>
+                </div>`;
                 return;
             }
-            container.innerHTML = complaints.map(c => `
+
+            container.innerHTML = complaints.map(c => {
+                const desc = (c.description || '').substring(0, 80);
+                const ellipsis = (c.description || '').length > 80 ? '…' : '';
+                const overdueHTML = c.is_overdue ? '<span class="overdue-badge ms-1">OVERDUE</span>' : '';
+                let deadlineHTML = '';
+                if (c.deadline) {
+                    const dl = new Date(c.deadline);
+                    const now = new Date();
+                    const daysLeft = Math.ceil((dl - now) / (1000*60*60*24));
+                    const cls = daysLeft < 0 ? 'overdue' : '';
+                    deadlineHTML = `<span class="deadline-info ${cls}"><i class="bi bi-alarm me-1"></i>${daysLeft < 0 ? Math.abs(daysLeft) + 'd overdue' : daysLeft + 'd left'}</span>`;
+                }
+
+                // Build action buttons based on current status
+                let actionBtns = `<button class="btn btn-sm btn-outline-primary" onclick="viewComplaintActions(${c.id})">
+                    <i class="bi bi-eye me-1"></i>View
+                </button>`;
+                if (['pending', 'reopened', 'reassigned'].includes(c.status)) {
+                    actionBtns += `<button class="btn btn-sm btn-success" onclick="openAssignModal(${c.id})">
+                        <i class="bi bi-person-check me-1"></i>Assign
+                    </button>`;
+                }
+                if (c.status === 'pending') {
+                    actionBtns += `<button class="btn btn-sm btn-danger" onclick="rejectComplaint(${c.id})">
+                        <i class="bi bi-x-circle me-1"></i>Reject
+                    </button>`;
+                }
+                if (c.status === 'completed') {
+                    actionBtns += `<button class="btn btn-sm btn-success" onclick="resolveComplaint(${c.id})">
+                        <i class="bi bi-check-lg me-1"></i>Resolve
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="reassignComplaint(${c.id})">
+                        <i class="bi bi-arrow-repeat me-1"></i>Reassign
+                    </button>`;
+                }
+
+                return `
                 <div class="complaint-card priority-${c.priority}">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h6>${c.title}</h6>
-                            <p class="text-muted small">${c.description.substring(0, 80)}...</p>
-                            <small>${formatDate(c.created_at)}</small>
+                    <div class="complaint-card-inner">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <h6 class="mb-0 fw-semibold">${c.title}</h6>
+                                <span class="status-badge status-${c.status}">${c.status.replace('_', ' ')}</span>
+                                ${overdueHTML}
+                            </div>
+                            <p class="text-muted small mb-1">${desc}${ellipsis}</p>
+                            <div class="d-flex align-items-center gap-3">
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>${formatDate(c.created_at)}</small>
+                                ${deadlineHTML}
+                                <span class="status-badge" style="background:${c.priority==='high'?'#fed7d7':c.priority==='low'?'#c6f6d5':'#fefcbf'};color:${c.priority==='high'?'#9b2c2c':c.priority==='low'?'#276749':'#744210'};">${(c.priority||'medium').toUpperCase()}</span>
+                            </div>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <span class="status-${c.status}">${c.status}</span><br>
-                            <button class="btn btn-sm btn-primary mt-2" onclick="showComplaintDetail(${c.id})">View</button>
+                        <div class="complaint-card-actions">
+                            ${actionBtns}
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
+        /* ── Render Assign List ── */
         async function renderAssignList(complaints) {
             const container = document.getElementById('assign-list');
+
+            // Fetch officers for this department
             const officers = await getUsers('officer', currentUser.department_id);
-            
+            window.deptOfficers = officers;
+
             if (!complaints.length) {
-                container.innerHTML = '<p class="text-muted">No complaints to assign</p>';
+                container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-check-circle fs-1 d-block mb-2 opacity-25"></i>
+                    <p class="mb-0">No pending complaints to assign</p>
+                </div>`;
                 return;
             }
-            
-            container.innerHTML = complaints.map(c => `
-                <div class="complaint-card">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h6>${c.title}</h6>
-                            <p class="text-muted small">${c.description.substring(0, 60)}...</p>
+
+            const officerCount = officers.length;
+            container.innerHTML = complaints.map(c => {
+                const desc = (c.description || '').substring(0, 70);
+                const ellipsis = (c.description || '').length > 70 ? '…' : '';
+                return `
+                <div class="assign-card">
+                    <div class="complaint-card-inner">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <h6 class="mb-0 fw-semibold">${c.title}</h6>
+                                <span class="status-badge status-${c.status}">${c.status.replace('_', ' ')}</span>
+                            </div>
+                            <p class="text-muted small mb-0">${desc}${ellipsis}</p>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-sm btn-success" onclick="openAssignModal(${c.id})">Assign</button>
+                        <div class="complaint-card-actions">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="showComplaintDetail(${c.id})">
+                                <i class="bi bi-eye me-1"></i>View
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="openAssignModal(${c.id})"
+                                ${officerCount === 0 ? 'disabled title="No officers available"' : ''}>
+                                <i class="bi bi-person-plus me-1"></i>Assign
+                            </button>
                         </div>
                     </div>
-                </div>
-            `).join('');
-            
-            // Store officers for modal
-            window.deptOfficers = officers;
+                </div>`;
+            }).join('');
         }
 
+        /* ── Assign Modal ── */
         function openAssignModal(complaintId) {
             selectedComplaintId = complaintId;
             const select = document.getElementById('assign-officer');
-            select.innerHTML = window.deptOfficers.map(o => 
-                `<option value="${o.id}">${o.name}</option>`
+            const officers = window.deptOfficers || [];
+
+            if (!officers.length) {
+                showAlert('No officers available in your department.', 'warning');
+                return;
+            }
+
+            select.innerHTML = officers.map(o =>
+                `<option value="${o.id}">${o.name}${o.is_active ? '' : ' (Inactive)'}</option>`
             ).join('');
+
             new bootstrap.Modal(document.getElementById('assignModal')).show();
         }
 
         async function confirmAssign() {
             const officerId = document.getElementById('assign-officer').value;
-            const result = await assignComplaint(selectedComplaintId, officerId);
-            if (result.success) {
-                showAlert('Assigned successfully!', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
-                loadData();
-            } else {
-                showAlert(result.error, 'danger');
+            const deadlineDays = parseInt(document.getElementById('assign-deadline').value) || 7;
+            const btn = document.getElementById('confirm-assign-btn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Assigning…';
+
+            try {
+                const result = await assignOfficer(selectedComplaintId, officerId, deadlineDays);
+                if (result.success) {
+                    showAlert('Assigned successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+                    loadDepartmentData();
+                } else {
+                    showAlert(result.error || 'Assignment failed', 'danger');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-person-check me-1"></i>Assign';
             }
         }
 
-        function renderCharts(stats) {
-            new Chart(document.getElementById('statusChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(stats.by_status || {}),
-                    datasets: [{ data: Object.values(stats.by_status || {}), backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78'] }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-            });
-            new Chart(document.getElementById('priorityChart'), {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(stats.by_priority || {}),
-                    datasets: [{ label: 'By Priority', data: Object.values(stats.by_priority || {}), backgroundColor: ['#48bb78', '#ecc94b', '#f56565'] }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-            });
+        /* ── Status Actions ── */
+        async function rejectComplaint(id) {
+            const reason = prompt('Enter reason for rejection:');
+            if (!reason) return;
+            const res = await updateComplaintStatus(id, 'rejected', reason);
+            if (res.success) {
+                showAlert('Complaint rejected.', 'warning');
+                loadDepartmentData();
+            } else {
+                showAlert(res.error || 'Rejection failed', 'danger');
+            }
         }
 
+        async function resolveComplaint(id) {
+            if (!confirm('Mark this complaint as resolved?')) return;
+            const res = await updateComplaintStatus(id, 'resolved');
+            if (res.success) {
+                showAlert('Complaint resolved!', 'success');
+                loadDepartmentData();
+            } else {
+                showAlert(res.error || 'Resolution failed', 'danger');
+            }
+        }
+
+        async function reassignComplaint(id) {
+            if (!confirm('Reassign this complaint to a new officer?')) return;
+            const res = await updateComplaintStatus(id, 'reassigned');
+            if (res.success) {
+                showAlert('Complaint reassigned. Please assign a new officer.', 'info');
+                loadDepartmentData();
+            } else {
+                showAlert(res.error || 'Reassignment failed', 'danger');
+            }
+        }
+
+        /* ── View complaint with actions ── */
+        async function viewComplaintActions(id) {
+            const content = document.getElementById('complaint-detail-content');
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner"></div></div>';
+            const modalEl = document.getElementById('complaintDetailModal');
+            let modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
+
+            try {
+                const complaints = await getComplaints();
+                const c = complaints.find(x => x.id === id);
+                if (!c) { content.innerHTML = '<div class="alert alert-danger">Not found</div>'; return; }
+
+                const overdueHTML = c.is_overdue ? '<span class="overdue-badge">OVERDUE</span>' : '';
+                let deadlineHTML = '';
+                if (c.deadline) {
+                    const dl = new Date(c.deadline);
+                    const daysLeft = Math.ceil((dl - new Date()) / (1000*60*60*24));
+                    deadlineHTML = `<span class="deadline-info ${daysLeft<0?'overdue':''}"><i class="bi bi-alarm me-1"></i>Deadline: ${dl.toLocaleDateString()} (${daysLeft<0?Math.abs(daysLeft)+'d overdue':daysLeft+'d left'})</span>`;
+                }
+
+                let imgHTML = '';
+                if (c.before_image || c.after_image) {
+                    imgHTML = `<div class="row mt-3 mb-3">
+                        ${c.before_image ? `<div class="col-md-6"><strong class="text-muted small">BEFORE</strong><img src="${API_BASE}/uploads/before/${c.before_image}" class="img-fluid rounded border mt-1" style="max-height:220px;object-fit:cover;width:100%"></div>` : ''}
+                        ${c.after_image ? `<div class="col-md-6"><strong class="text-success small">AFTER</strong><img src="${API_BASE}/uploads/after/${c.after_image}" class="img-fluid rounded border border-success mt-1" style="max-height:220px;object-fit:cover;width:100%"></div>` : ''}
+                    </div>`;
+                }
+
+                // Priority selector
+                const prioritySelect = `<div class="mt-3">
+                    <label class="form-label fw-semibold">Priority</label>
+                    <select class="form-select form-select-sm" id="detail-priority" onchange="changePriority(${c.id}, this.value)">
+                        <option value="low" ${c.priority==='low'?'selected':''}>🟢 Low</option>
+                        <option value="medium" ${c.priority==='medium'?'selected':''}>🟡 Medium</option>
+                        <option value="high" ${c.priority==='high'?'selected':''}>🔴 High</option>
+                    </select>
+                </div>`;
+
+                // Action buttons based on status
+                let statusActions = '';
+                if (['pending','reopened','reassigned'].includes(c.status)) {
+                    statusActions = `<div class="mt-3 d-flex gap-2 flex-wrap">
+                        <button class="btn btn-success btn-sm" onclick="openAssignModal(${c.id}); bootstrap.Modal.getInstance(document.getElementById('complaintDetailModal')).hide();"><i class="bi bi-person-check me-1"></i>Assign Officer</button>
+                        ${c.status==='pending' ? `<button class="btn btn-danger btn-sm" onclick="rejectComplaint(${c.id}); bootstrap.Modal.getInstance(document.getElementById('complaintDetailModal')).hide();"><i class="bi bi-x-circle me-1"></i>Reject</button>` : ''}
+                    </div>`;
+                } else if (c.status === 'completed') {
+                    statusActions = `<div class="mt-3 d-flex gap-2 flex-wrap">
+                        <button class="btn btn-success btn-sm" onclick="resolveComplaint(${c.id}); bootstrap.Modal.getInstance(document.getElementById('complaintDetailModal')).hide();"><i class="bi bi-check-lg me-1"></i>Resolve</button>
+                        <button class="btn btn-warning btn-sm" onclick="reassignComplaint(${c.id}); bootstrap.Modal.getInstance(document.getElementById('complaintDetailModal')).hide();"><i class="bi bi-arrow-repeat me-1"></i>Reassign</button>
+                    </div>`;
+                }
+
+                content.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h5 class="fw-bold mb-0">${c.title}</h5>
+                        <div><span class="status-badge status-${c.status}">${c.status.replace('_',' ').toUpperCase()}</span> ${overdueHTML}</div>
+                    </div>
+                    <p class="text-secondary">${c.description}</p>
+                    <div class="d-flex flex-wrap gap-3 text-muted small mb-2">
+                        <span><i class="bi bi-person me-1"></i>Citizen: ${c.citizen_name || 'N/A'}</span>
+                        <span><i class="bi bi-building me-1"></i>${c.department_name || 'N/A'}</span>
+                        ${c.officer_name ? `<span><i class="bi bi-person-badge me-1"></i>Officer: ${c.officer_name}</span>` : ''}
+                        ${deadlineHTML}
+                    </div>
+                    ${imgHTML}
+                    ${c.remarks ? `<div class="alert alert-secondary mt-2"><strong>Remarks:</strong> ${c.remarks}</div>` : ''}
+                    ${prioritySelect}
+                    ${statusActions}
+                `;
+            } catch(e) {
+                content.innerHTML = '<div class="alert alert-danger">Failed to load</div>';
+            }
+        }
+
+        async function changePriority(id, priority) {
+            const res = await updatePriority(id, priority);
+            if (res.success) {
+                showAlert('Priority updated!', 'success');
+            } else {
+                showAlert(res.error || 'Failed to update priority', 'danger');
+            }
+        }
+
+        /* ── Charts — lazy, rendered once ── */
+        function renderCharts(stats) {
+            if (chartsRendered) return;
+            chartsRendered = true;
+
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(stats.by_status || {}),
+                        datasets: [{
+                            data: Object.values(stats.by_status || {}),
+                            backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78', '#2c7a7b', '#718096']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            const priorityCtx = document.getElementById('priorityChart');
+            if (priorityCtx) {
+                new Chart(priorityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(stats.by_priority || {}).map(p => p[0].toUpperCase() + p.slice(1)),
+                        datasets: [{
+                            label: 'By Priority',
+                            data: Object.values(stats.by_priority || {}),
+                            backgroundColor: ['#48bb78', '#ecc94b', '#f56565']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        /* ── Notifications ── */
+        async function loadNotificationsAndBadges() {
+            const notifications = await getNotifications();
+            const countBadge = document.getElementById('notification-count');
+            const panel = document.getElementById('notifications-panel');
+
+            const unread = notifications.filter(n => !n.is_read).length;
+            if (unread > 0) {
+                countBadge.textContent = unread;
+                countBadge.style.display = 'inline-block';
+            }
+
+            if (!notifications.length) {
+                panel.innerHTML = '<p class="text-muted text-center py-4 mb-0">No notifications</p>';
+                return;
+            }
+
+            panel.innerHTML = notifications.map(n => `
+            <div class="notif-item ${n.is_read ? '' : 'unread'}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <strong class="small">${n.title}</strong>
+                    <small class="text-muted text-nowrap">${formatDate(n.created_at)}</small>
+                </div>
+                <p class="mb-0 text-muted small mt-1">${n.message}</p>
+            </div>
+        `).join('');
+        }
+
+        /* ── Section Switcher ── */
         function showSection(section) {
-            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
-            document.getElementById(`section-${section}`).style.display = 'block';
+            document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(`section-${section}`);
+            if (!target) {
+                showAlert('This section is not available right now.', 'warning');
+                document.getElementById('section-dashboard').classList.add('active');
+                return;
+            }
+            target.classList.add('active');
+            document.getElementById('pageContent').scrollTop = 0;
+
+            if (section === 'notifications') loadNotificationsAndBadges();
         }
     </script>
 </body>
+
 </html>

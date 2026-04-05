@@ -3,310 +3,539 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Civic Issue Reporting System - Anand City</title>
+    <meta name="description" content="Report civic issues in Anand city directly to municipal authorities. Track status in real-time.">
+    <title>Anand Smart City — Civic Issue Reporting</title>
+
+    <!-- Critical CSS: Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap & Icons — defer non-critical -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="../../public/css/style.css?v=3.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Leaflet CSS (lazy loaded with map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
+
+    <link rel="stylesheet" href="../../public/css/style.css?v=4.0">
 </head>
 <body>
-    <!-- Island Navigation -->
-    <div class="container mt-3 mt-lg-4 pt-2 position-relative z-3">
-        <nav class="navbar navbar-expand-lg navbar-light bg-card rounded-pill px-3 px-lg-4 shadow-sm" style="background: rgba(255,255,255,0.9) !important; backdrop-filter: blur(12px);">
-            <a class="navbar-brand fw-bold" href="../home/index.html">
-                <i class="bi bi-hexagon-fill text-primary me-2"></i> Anand Smart City
+
+    <!-- ======= ISLAND NAVBAR ======= -->
+    <div class="navbar-wrapper">
+        <nav class="island-nav" role="navigation" aria-label="Main navigation">
+            <a class="brand" href="index.html" aria-label="Anand Smart City Home">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" fill="currentColor" opacity="0.9"/>
+                        <path d="M12 2L3 7L12 12L21 7L12 2Z" fill="white" opacity="0.3"/>
+                    </svg>
+                </span>
+                <span>Anand Smart City</span>
             </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+
+            <!-- Hamburger (mobile) -->
+            <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navMenu" aria-label="Toggle menu">
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center text-center mt-3 mt-lg-0">
-                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3" href="#how-it-works">How It Works</a></li>
-                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3" href="#map-view">Live Pulse Map</a></li>
-                    <li class="nav-item"><a class="nav-link fw-semibold px-lg-3 py-2" href="../auth/login.html">Sign In</a></li>
-                    <li class="nav-item d-none d-lg-block"><a class="nav-link btn btn-primary-custom ms-2 rounded-pill px-4 text-white" href="../auth/register.html">Get Started</a></li>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+                    <i class="bi bi-moon-stars-fill"></i>
+                </button>
+                <ul class="nav-links" id="navMenu" role="list">
+                    <li><a href="#how-it-works" class="nav-link-item">How It Works</a></li>
+                    <li><a href="#features" class="nav-link-item">Features</a></li>
+                    <li><a href="#map-view" class="nav-link-item">Live Map</a></li>
+                    <li><a href="../auth/login.html" class="nav-link-item">Sign In</a></li>
+                    <li>
+                        <a href="../auth/register.html" class="btn-cta-nav" aria-label="Get started — create account">
+                            Get Started
+                        </a>
+                    </li>
                 </ul>
             </div>
         </nav>
     </div>
 
-    <!-- Cinematic Hero Section -->
-    <section id="home" class="hero-section text-center position-relative overflow-visible" style="padding-top: 6rem; padding-bottom: 8rem;">
-        <div class="container position-relative z-1">
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <span class="badge bg-white text-primary px-3 py-2 rounded-pill shadow-sm mb-4 fw-bold tracking-wider" style="letter-spacing: 1px;">
-                        <i class="bi bi-stars"></i> ANAND MUNICIPALITY V2.0
-                    </span>
-                    <h1 class="hero-title fw-bolder mb-4" style="font-size: clamp(3rem, 6vw, 5.5rem); letter-spacing: -2px; line-height: 1;">
-                        The Future of Civic <br><span class="text-primary">Engagement.</span>
-                    </h1>
-                    <p class="hero-subtitle lead text-muted px-md-5 mb-5 mx-auto" style="max-width: 600px; font-size: 1.15rem;">
-                        Directly connect with municipal authorities, report local issues instantly from your phone, and track the progress of a better Anand in real-time.
-                    </p>
-                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3 hero-action-buttons px-3 px-md-0">
-                        <a href="../auth/register.html" class="btn btn-primary-custom btn-lg rounded-pill px-5 shadow-sm d-flex align-items-center justify-content-center py-3">
-                            <i class="bi bi-lightning-charge-fill me-2 fs-5"></i> Start Reporting
-                        </a>
-                        <a href="#map-view" class="btn btn-outline-custom btn-lg rounded-pill px-4 bg-white shadow-sm border-0 text-dark d-flex align-items-center justify-content-center py-3">
-                            <i class="bi bi-map me-2 fs-5 text-primary"></i> View Pulse Map
-                        </a>
-                    </div>
+    <!-- ======= HERO ======= -->
+    <section id="home" class="hero" aria-labelledby="hero-heading">
+        <!-- Background orbs -->
+        <div class="hero-orb hero-orb-1" aria-hidden="true"></div>
+        <div class="hero-orb hero-orb-2" aria-hidden="true"></div>
+
+        <div class="container hero-container">
+            <div class="hero-badge">
+                <i class="bi bi-stars" aria-hidden="true"></i>
+                <span>Anand Municipality — Smart Civic Platform</span>
+            </div>
+
+            <h1 id="hero-heading" class="hero-title">
+                Your City.<br>
+                <span class="hero-title-accent">Your Voice.</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Report local issues in seconds. Track them in real-time. 
+                Watch Anand get better — one resolved complaint at a time.
+            </p>
+
+            <div class="hero-actions">
+                <a href="../auth/register.html" class="btn-primary-hero">
+                    <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                    Start Reporting
+                </a>
+                <a href="#map-view" class="btn-secondary-hero">
+                    <i class="bi bi-map" aria-hidden="true"></i>
+                    View Live Map
+                </a>
+            </div>
+
+            <div class="hero-proof" aria-label="Platform highlights">
+                <div class="hero-proof-item">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <span>Boundary-validated reports</span>
+                </div>
+                <div class="hero-proof-item">
+                    <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                    <span>Smart department routing</span>
+                </div>
+                <div class="hero-proof-item">
+                    <i class="bi bi-image" aria-hidden="true"></i>
+                    <span>Before/after proof tracking</span>
                 </div>
             </div>
-        </div>
-        
-        <!-- Abstract Background Glow -->
-        <div class="position-absolute top-50 start-50 translate-middle w-100 h-100" style="z-index: 0; pointer-events: none; opacity: 0.8;">
-            <div class="position-absolute rounded-circle" style="width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(0,122,255,0.08) 0%, rgba(255,255,255,0) 70%); top: -20%; left: 0%;"></div>
-            <div class="position-absolute rounded-circle" style="width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(52,199,89,0.05) 0%, rgba(255,255,255,0) 70%); bottom: -30%; right: -10%;"></div>
+
+            <!-- Live stats strip -->
+            <div class="stats-strip" id="statsStrip" aria-label="Live platform statistics">
+                <div class="stat-item">
+                    <span class="stat-num" id="stats-total">—</span>
+                    <span class="stat-lbl">Total Issues</span>
+                </div>
+                <div class="stat-divider" aria-hidden="true"></div>
+                <div class="stat-item">
+                    <span class="stat-num stat-pending" id="stats-pending">—</span>
+                    <span class="stat-lbl">Pending</span>
+                </div>
+                <div class="stat-divider" aria-hidden="true"></div>
+                <div class="stat-item">
+                    <span class="stat-num stat-resolved" id="stats-resolved">—</span>
+                    <span class="stat-lbl">Resolved</span>
+                </div>
+            </div>
+
+            <div class="hero-showcase" aria-hidden="true">
+                <article class="showcase-panel showcase-panel-primary">
+                    <div class="showcase-label">Smart Workflow</div>
+                    <h3 class="showcase-title">Citizen reports move from location pin to assigned team in a clean, trackable flow.</h3>
+                    <div class="showcase-flow">
+                        <span>Report</span>
+                        <i class="bi bi-arrow-right"></i>
+                        <span>Assign</span>
+                        <i class="bi bi-arrow-right"></i>
+                        <span>Resolve</span>
+                    </div>
+                </article>
+                <div class="showcase-stack">
+                    <article class="showcase-card">
+                        <div class="showcase-icon blue"><i class="bi bi-broadcast-pin"></i></div>
+                        <div>
+                            <div class="showcase-card-title">Live City Pulse</div>
+                            <p class="showcase-card-text">View issue density and resolution movement across Anand in one place.</p>
+                        </div>
+                    </article>
+                    <article class="showcase-card">
+                        <div class="showcase-icon green"><i class="bi bi-patch-check-fill"></i></div>
+                        <div>
+                            <div class="showcase-card-title">Proof-Backed Closure</div>
+                            <p class="showcase-card-text">Every completed issue can carry visual evidence and citizen confirmation.</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Alert Container -->
-    <div id="alert-container" class="container mt-2"></div>
-
-    <!-- Staggered "How It Works" Layout -->
-    <section id="how-it-works" class="py-5 position-relative bg-card">
-        <div class="container py-5">
-            <div class="text-center mb-5 pb-lg-3">
-                <h2 class="fw-bold display-6 letter-spacing-tight">Simple. Transparent. Fast.</h2>
-                <p class="text-muted">How your civic report travels from your phone to a resolved ticket.</p>
-            </div>
-            
-            <div class="row g-4 align-items-center px-2 px-md-0">
-                <!-- Staggered Deck -->
-                <div class="col-md-3 mt-md-0">
-                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative transition-bouncy" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">1</div>
-                        <h5 class="fw-bold mb-3">Report</h5>
-                        <p class="text-muted small mb-0 px-2">Snap a photo and geolocate the issue instantly.</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mt-lg-5">
-                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">2</div>
-                        <h5 class="fw-bold mb-3">Assign</h5>
-                        <p class="text-muted small mb-0 px-2">Algorithms route your ticket to the exact dept.</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mt-md-0">
-                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">3</div>
-                        <h5 class="fw-bold mb-3">Resolve</h5>
-                        <p class="text-muted small mb-0 px-2">Field officers are deployed to physically fix it.</p>
-                    </div>
-                </div>
-                <div class="col-md-3 mt-lg-5">
-                    <div class="bg-main p-4 rounded-4 border-0 h-100 text-center position-relative" style="transition: all 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="bg-card text-primary shadow-sm mx-auto mb-4 d-flex align-items-center justify-content-center" style="width: 55px; height: 55px; border-radius: 50%; font-size: 1.5rem; font-weight: bold;">4</div>
-                        <h5 class="fw-bold mb-3">Complete</h5>
-                        <p class="text-muted small mb-0 px-2">You receive live notifications with proof.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features -->
-    <section id="features" class="py-5">
+    <!-- ======= HOW IT WORKS ======= -->
+    <section id="how-it-works" class="section-how" aria-labelledby="how-heading">
         <div class="container">
-            <h2 class="text-center mb-5">Features</h2>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-geo-alt feature-icon"></i>
-                        <h4 class="feature-title">GPS Location</h4>
-                        <p class="feature-description">Auto-capture your location to ensure issues are reported from within Anand city.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-camera feature-icon"></i>
-                        <h4 class="feature-title">Photo Evidence</h4>
-                        <p class="feature-description">Upload before/after photos as proof of the issue and its resolution.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-graph-up feature-icon"></i>
-                        <h4 class="feature-title">Real-Time Tracking</h4>
-                        <p class="feature-description">Track your complaint status from submission to resolution.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-shield-check feature-icon"></i>
-                        <h4 class="feature-title">Verified System</h4>
-                        <p class="feature-description">Smart validation ensures only legitimate issues within Anand are accepted.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-bell feature-icon"></i>
-                        <h4 class="feature-title">Notifications</h4>
-                        <p class="feature-description">Get notified at every step - when submitted, assigned, in progress, and resolved.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-box">
-                        <i class="bi bi-arrow-repeat feature-icon"></i>
-                        <h4 class="feature-title">Reopen Feature</h4>
-                        <p class="feature-description">Not satisfied with the resolution? Reopen the complaint for re-review.</p>
-                    </div>
-                </div>
+            <div class="section-header">
+                <p class="section-eyebrow">The Process</p>
+                <h2 id="how-heading" class="section-title">Simple. Transparent. Fast.</h2>
+                <p class="section-desc">How your report travels from phone to fixed.</p>
             </div>
+
+            <ol class="steps-track" aria-label="4-step reporting process">
+                <li class="step-card" style="--delay: 0ms">
+                    <div class="step-number" aria-hidden="true">01</div>
+                    <div class="step-icon" aria-hidden="true"><i class="bi bi-camera"></i></div>
+                    <h3 class="step-title">Report</h3>
+                    <p class="step-desc">Snap a photo, drop a pin, describe the issue — done in under a minute.</p>
+                </li>
+                <li class="step-card" style="--delay: 80ms">
+                    <div class="step-number" aria-hidden="true">02</div>
+                    <div class="step-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></div>
+                    <h3 class="step-title">Assign</h3>
+                    <p class="step-desc">Smart routing sends your ticket to exactly the right municipal department.</p>
+                </li>
+                <li class="step-card" style="--delay: 160ms">
+                    <div class="step-number" aria-hidden="true">03</div>
+                    <div class="step-icon" aria-hidden="true"><i class="bi bi-tools"></i></div>
+                    <h3 class="step-title">Resolve</h3>
+                    <p class="step-desc">Field officers are dispatched and you see live status updates as they work.</p>
+                </li>
+                <li class="step-card" style="--delay: 240ms">
+                    <div class="step-number" aria-hidden="true">04</div>
+                    <div class="step-icon" aria-hidden="true"><i class="bi bi-patch-check"></i></div>
+                    <h3 class="step-title">Verify</h3>
+                    <p class="step-desc">Receive photo proof of the fix. Not satisfied? Reopen with one tap.</p>
+                </li>
+            </ol>
         </div>
     </section>
 
-    <!-- Live Map Section -->
-    <section id="map-view" class="py-5 bg-light">
+    <!-- ======= FEATURES ======= -->
+    <section id="features" class="section-features" aria-labelledby="features-heading">
         <div class="container">
-            <h2 class="text-center mb-4">Live City Map</h2>
-            <p class="text-center text-muted mb-4">View current civic issues across Anand city</p>
-            <div class="map-container">
-                <div id="public-map" style="height: 500px; width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1;"></div>
+            <div class="section-header">
+                <p class="section-eyebrow">Built for Citizens</p>
+                <h2 id="features-heading" class="section-title">Everything You Need</h2>
             </div>
-            <div class="row mt-4 text-center">
-                <div class="col">
-                    <span class="me-3"><i class="bi bi-circle-fill text-danger"></i> Pending</span>
-                    <span class="me-3"><i class="bi bi-circle-fill text-warning"></i> In Progress</span>
-                    <span class="me-3"><i class="bi bi-circle-fill text-success"></i> Resolved</span>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- About Section -->
-    <section id="about" class="py-5">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h2>About Anand Civic Issues</h2>
-                    <p class="lead">A smart platform for civic issue reporting in Anand city, Gujarat.</p>
-                    <p>Our system enables citizens to report issues like garbage accumulation, road damage, water leakages, and more directly to municipal authorities. With GPS validation and smart department matching, we ensure only legitimate issues within Anand city are processed.</p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success"></i> Reports validated within Anand city boundary</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Smart department matching using keywords</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Real-time status tracking</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Before/after photo evidence</li>
-                    </ul>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Quick Stats</h5>
-                            <div class="row text-center mt-4">
-                                <div class="col-4">
-                                    <h3 class="text-primary" id="stats-total">0</h3>
-                                    <p class="text-muted">Total Issues</p>
-                                </div>
-                                <div class="col-4">
-                                    <h3 class="text-warning" id="stats-pending">0</h3>
-                                    <p class="text-muted">Pending</p>
-                                </div>
-                                <div class="col-4">
-                                    <h3 class="text-success" id="stats-resolved">0</h3>
-                                    <p class="text-muted">Resolved</p>
-                                </div>
-                            </div>
+            <div class="features-grid">
+                <article class="feature-card feature-card-wide">
+                    <div class="feature-card-inner">
+                        <div class="feature-icon-wrap fc-blue" aria-hidden="true">
+                            <i class="bi bi-geo-alt-fill"></i>
+                        </div>
+                        <div>
+                            <h3 class="feature-title">GPS Location</h3>
+                            <p class="feature-desc">Auto-capture validates the issue is within Anand city limits — no fake reports.</p>
                         </div>
                     </div>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon-wrap fc-orange" aria-hidden="true">
+                        <i class="bi bi-camera-fill"></i>
+                    </div>
+                    <h3 class="feature-title">Photo Evidence</h3>
+                    <p class="feature-desc">Before & after photos create a transparent record of every resolution.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon-wrap fc-green" aria-hidden="true">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h3 class="feature-title">Real-Time Tracking</h3>
+                    <p class="feature-desc">Live status updates from submission to completion — always know where things stand.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon-wrap fc-purple" aria-hidden="true">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h3 class="feature-title">Smart Validation</h3>
+                    <p class="feature-desc">AI keyword matching routes issues to the correct department automatically.</p>
+                </article>
+
+                <article class="feature-card">
+                    <div class="feature-icon-wrap fc-yellow" aria-hidden="true">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                    <h3 class="feature-title">Notifications</h3>
+                    <p class="feature-desc">Push alerts at every milestone — assigned, in progress, resolved, and closed.</p>
+                </article>
+
+                <article class="feature-card feature-card-wide">
+                    <div class="feature-card-inner">
+                        <div class="feature-icon-wrap fc-red" aria-hidden="true">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </div>
+                        <div>
+                            <h3 class="feature-title">Reopen Complaints</h3>
+                            <p class="feature-desc">Not satisfied with a resolution? Reopen the ticket for re-investigation — your voice matters until the job is done right.</p>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======= LIVE MAP ======= -->
+    <section id="map-view" class="section-map" aria-labelledby="map-heading">
+        <div class="container">
+            <div class="section-header">
+                <p class="section-eyebrow">Anand City</p>
+                <h2 id="map-heading" class="section-title">Live Issue Pulse</h2>
+                <p class="section-desc">Real-time civic issues plotted across the city.</p>
+            </div>
+
+            <div class="map-wrapper" role="region" aria-label="Interactive map of Anand city civic issues">
+                <div class="map-banner">
+                    <div>
+                        <p class="map-banner-label">City Overview</p>
+                        <h3 class="map-banner-title">See where complaints are clustering and where action is happening fastest.</h3>
+                    </div>
+                    <div class="map-banner-badges">
+                        <span class="map-banner-chip"><i class="bi bi-geo-alt-fill"></i> Geo-tagged reports</span>
+                        <span class="map-banner-chip"><i class="bi bi-clock-history"></i> Live status view</span>
+                    </div>
+                </div>
+                <div id="public-map" aria-label="Leaflet map"></div>
+                <div class="map-legend" aria-label="Map legend">
+                    <span class="legend-item"><span class="legend-dot" style="background:#f56565"></span>Pending</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ecc94b"></span>In Progress</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#48bb78"></span>Resolved</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5>Anand Civic Issues</h5>
-                    <p>Making Anand cleaner, safer, and better - one report at a time.</p>
-                </div>
-                <div class="col-md-4">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#home" class="text-white">Home</a></li>
-                        <li><a href="#about" class="text-white">About</a></li>
-                        <li><a href="#map-view" class="text-white">Live Map</a></li>
-                        <li><a href="../auth/login.html" class="text-white">Login</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Contact</h5>
-                    <p><i class="bi bi-envelope"></i> municipal@anand.gov.in</p>
-                    <p><i class="bi bi-telephone"></i> 1800-XXX-XXXX</p>
+    <!-- ======= ABOUT ======= -->
+    <section id="about" class="section-about" aria-labelledby="about-heading">
+        <div class="container about-grid">
+            <div class="about-content">
+                <p class="section-eyebrow">About the Platform</p>
+                <h2 id="about-heading" class="section-title">Built for Anand's Citizens</h2>
+                <p class="about-lead">A smart, transparent platform connecting citizens directly with municipal authorities in Anand, Gujarat.</p>
+                <ul class="about-list" role="list">
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Reports validated within Anand city boundary</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Smart department matching via keyword analysis</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Real-time status tracking for every complaint</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Before/after photo evidence for transparency</li>
+                </ul>
+                <a href="../auth/register.html" class="btn-primary-about">
+                    Join the Community <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="about-visual" aria-hidden="true">
+                <div class="about-card-stack">
+                    <div class="acard acard-1">
+                        <div class="acard-icon" style="color:#007aff"><i class="bi bi-geo-alt-fill"></i></div>
+                        <div>
+                            <div class="acard-title">Road Pothole</div>
+                            <div class="acard-sub">Near Gandhi Chowk · 2h ago</div>
+                        </div>
+                        <span class="acard-badge pending">Pending</span>
+                    </div>
+                    <div class="acard acard-2">
+                        <div class="acard-icon" style="color:#34c759"><i class="bi bi-droplet-fill"></i></div>
+                        <div>
+                            <div class="acard-title">Water Leakage</div>
+                            <div class="acard-sub">Anand Station Rd · 5h ago</div>
+                        </div>
+                        <span class="acard-badge resolved">Resolved</span>
+                    </div>
+                    <div class="acard acard-3">
+                        <div class="acard-icon" style="color:#ff9500"><i class="bi bi-trash3-fill"></i></div>
+                        <div>
+                            <div class="acard-title">Garbage Overflow</div>
+                            <div class="acard-sub">Sardar Patel Nagar · 1h ago</div>
+                        </div>
+                        <span class="acard-badge in-progress">In Progress</span>
+                    </div>
                 </div>
             </div>
-            <div class="text-center mt-3 pt-3 border-top">
-                <p>&copy; 2024 Anand Municipal Corporation. All rights reserved.</p>
+        </div>
+    </section>
+
+    <!-- ======= CTA BANNER ======= -->
+    <section class="cta-section" aria-labelledby="cta-heading">
+        <div class="container cta-inner">
+            <div>
+                <h2 id="cta-heading" class="cta-title">Ready to make Anand better?</h2>
+                <p class="cta-sub">Join thousands of citizens building a cleaner, safer city.</p>
             </div>
+            <div class="cta-actions">
+                <a href="../auth/register.html" class="btn-cta-white">Create Free Account</a>
+                <a href="../auth/login.html" class="btn-cta-outline">Sign In</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======= FOOTER ======= -->
+    <footer class="site-footer" role="contentinfo">
+        <div class="container footer-grid">
+            <div class="footer-brand">
+                <div class="brand footer-brand-name">
+                    <span class="brand-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" fill="currentColor" opacity="0.9"/></svg>
+                    </span>
+                    Anand Smart City
+                </div>
+                <p class="footer-tagline">Making Anand cleaner, safer, and better — one resolved issue at a time.</p>
+            </div>
+            <nav class="footer-nav" aria-label="Footer navigation">
+                <h3 class="footer-heading">Quick Links</h3>
+                <ul role="list">
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#map-view">Live Map</a></li>
+                    <li><a href="../auth/login.html">Login</a></li>
+                </ul>
+            </nav>
+            <div class="footer-contact">
+                <h3 class="footer-heading">Contact</h3>
+                <address>
+                    <p><i class="bi bi-envelope" aria-hidden="true"></i> <a href="mailto:info@anandcivic.in">info@anandcivic.in</a></p>
+                    <p><i class="bi bi-telephone" aria-hidden="true"></i> 1800-XXX-XXXX</p>
+                    <p><i class="bi bi-geo-alt" aria-hidden="true"></i> Anand Municipal Corporation, Gujarat</p>
+                </address>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; <span id="footer-year"></span> Anand Municipal Corporation. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="../../public/js/main.js"></script>
+    <!-- Alert container -->
+    <div id="alert-container" role="alert" aria-live="polite" class="alert-container"></div>
+
+    <!-- Scripts: deferred for performance -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="../../public/js/main.js" defer></script>
+
     <script>
-        // Initialize map on page load
+        // ── Footer year ──────────────────────────────────────────────
+        document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+        // ── Mobile nav toggle ────────────────────────────────────────
+        const toggle = document.getElementById('navToggle');
+        const menu   = document.getElementById('navMenu');
+        toggle.addEventListener('click', () => {
+            const open = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!open));
+            menu.classList.toggle('open', !open);
+            toggle.classList.toggle('active', !open);
+        });
+        // Close menu on link click
+        menu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                toggle.setAttribute('aria-expanded', 'false');
+                menu.classList.remove('open');
+                toggle.classList.remove('active');
+            });
+        });
+
+        // ── Smooth scroll for anchor links ──────────────────────────
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // ── Intersection Observer for scroll animations ──────────────
+        const observerOpts = { threshold: 0.12, rootMargin: '0px 0px -40px 0px' };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOpts);
+        document.querySelectorAll('.step-card, .feature-card, .about-content, .about-visual')
+                .forEach(el => observer.observe(el));
+
+        // ── Animated counter ────────────────────────────────────────
+        function animateCount(el, target) {
+            if (isNaN(target) || target === 0) { el.textContent = target; return; }
+            let start = 0;
+            const step = Math.max(1, Math.ceil(target / 40));
+            const timer = setInterval(() => {
+                start = Math.min(start + step, target);
+                el.textContent = start.toLocaleString('en-IN');
+                if (start >= target) clearInterval(timer);
+            }, 30);
+        }
+
+        // ── Load stats and map on DOMContentLoaded ───────────────────
         document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize Leaflet map
-            map = L.map('public-map').setView([22.5, 72.9], 13);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-            
-            // Load OSM Places (Hospitals, Schools, Parks, etc.)
-            fetchAndDisplayPlaces(map);
-            
-            // Load and display complaint markers
+
+            // Stats
             try {
-                const complaints = await getMapData();
-                
-                const statusColors = {
-                    'pending': '#f56565',
-                    'assigned': '#4299e1',
-                    'in_progress': '#ecc94b',
-                    'completed': '#48bb78',
-                    'resolved': '#2c7a7b',
-                    'closed': '#718096'
-                };
-                
-                complaints.forEach(complaint => {
-                    const color = statusColors[complaint.status] || '#718096';
-                    
-                    L.circleMarker([complaint.latitude, complaint.longitude], {
-                        radius: 10,
-                        fillColor: color,
-                        color: '#fff',
-                        weight: 2,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    }).addTo(map).bindPopup(`
-                        <strong>${complaint.title}</strong><br>
-                        Status: ${complaint.status}<br>
-                        Department: ${complaint.department || 'N/A'}
-                    `);
+                const stats = await getPublicStats();
+                if (stats) {
+                    animateCount(document.getElementById('stats-total'),    stats.total ?? 0);
+                    animateCount(document.getElementById('stats-pending'),  stats.by_status?.pending ?? stats.pending ?? 0);
+                    animateCount(document.getElementById('stats-resolved'), stats.resolved_total ?? stats.by_status?.resolved ?? stats.resolved ?? 0);
+                }
+            } catch (e) {
+                ['stats-total','stats-pending','stats-resolved'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '—';
                 });
-            } catch (error) {
-                console.error('Error loading map data:', error);
             }
-            
-            // Fetch stats
-            try {
-                const response = await fetch('http://localhost:8001/api/stats');
-                const stats = await response.json();
-                
-                document.getElementById('stats-total').textContent = stats.total || 0;
-                document.getElementById('stats-pending').textContent = stats.by_status?.pending || 0;
-                document.getElementById('stats-resolved').textContent = stats.by_status?.resolved || 0;
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
+
+            // Lazy-load Leaflet map only when section is visible
+            const mapEl = document.getElementById('public-map');
+            const mapSection = document.getElementById('map-view');
+            if (!mapEl || !mapSection) return;
+
+            const mapObserver = new IntersectionObserver(async ([entry]) => {
+                if (!entry.isIntersecting) return;
+                mapObserver.disconnect();
+
+                // Ensure Leaflet is loaded
+                if (typeof L === 'undefined') {
+                    await new Promise((res, rej) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                        s.onload = res; s.onerror = rej;
+                        document.head.appendChild(s);
+                    });
+                }
+
+                const map = L.map('public-map', { zoomControl: true }).setView([22.5, 72.9], 13);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    maxZoom: 19
+                }).addTo(map);
+
+                // Load complaints
+                try {
+                    const complaints = await getMapData();
+                    if (!Array.isArray(complaints)) return;
+
+                    const statusColors = {
+                        pending:     '#f56565',
+                        assigned:    '#4299e1',
+                        in_progress: '#ecc94b',
+                        completed:   '#48bb78',
+                        resolved:    '#48bb78',
+                        closed:      '#718096'
+                    };
+
+                    complaints.forEach(c => {
+                        if (!c.latitude || !c.longitude) return;
+                        L.circleMarker([c.latitude, c.longitude], {
+                            radius: 9,
+                            fillColor: statusColors[c.status] ?? '#718096',
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.85
+                        }).addTo(map).bindPopup(
+                            `<strong>${c.title ?? 'Issue'}</strong><br>
+                             Status: ${c.status ?? 'Unknown'}<br>
+                             Dept: ${c.department ?? 'N/A'}`
+                        );
+                    });
+                } catch (err) {
+                    console.warn('Map data unavailable:', err.message);
+                }
+
+            }, { threshold: 0.1 });
+            mapObserver.observe(mapSection);
         });
     </script>
 </body>

@@ -1,1182 +1,614 @@
-// Civic Issue Reporting System - Main JavaScript
-const API_BASE = ''; // Extremely powerful relative routing for the Cloud!
+// ============================================================
+// main.js — Anand Civic Issue Reporting System
+// Shared utilities: auth, API, helpers
+// ============================================================
 
-// Global state
-let currentUser = null;
-let map = null;
-let complaintMarkers = [];
+'use strict';
 
-// ==================== AUTH FUNCTIONS ====================
+// ── THEME SYSTEM (runs immediately to prevent flash) ─────────
+function getPreferredTheme() {
+    try {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+}
+
+function applyTheme(theme) {
+    const nextTheme = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', nextTheme);
+
+    try {
+        localStorage.setItem('theme', nextTheme);
+    } catch {}
+
+    document.querySelectorAll('.theme-toggle').forEach(btn => {
+        btn.innerHTML = nextTheme === 'dark'
+            ? '<i class="bi bi-sun-fill"></i>'
+            : '<i class="bi bi-moon-stars-fill"></i>';
+        btn.setAttribute('aria-label', nextTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+        btn.setAttribute('title', nextTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    });
+}
+
+(function initTheme() {
+    applyTheme(getPreferredTheme());
+})();
+
+let themeAnimationTimer = null;
+let themeOverlayTimer = null;
+
+function runThemeOverlay(nextTheme) {
+    const existing = document.querySelector('.theme-transition-overlay');
+    if (existing) existing.remove();
+
+    const trigger = document.activeElement && document.activeElement.classList?.contains('theme-toggle')
+        ? document.activeElement
+        : document.querySelector('.theme-toggle');
+
+    let x = window.innerWidth / 2;
+    let y = window.innerHeight / 2;
+
+    if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        x = rect.left + rect.width / 2;
+        y = rect.top + rect.height / 2;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = `theme-transition-overlay theme-transition-overlay-${nextTheme}`;
+    overlay.style.setProperty('--theme-origin-x', `${x}px`);
+    overlay.style.setProperty('--theme-origin-y', `${y}px`);
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.classList.add('is-active');
+    });
+
+    if (themeOverlayTimer) {
+        clearTimeout(themeOverlayTimer);
+    }
+
+    themeOverlayTimer = window.setTimeout(() => {
+        overlay.remove();
+    }, 720);
+}
+
+function animateThemeSwitch(nextTheme) {
+    const html = document.documentElement;
+
+    if (themeAnimationTimer) {
+        clearTimeout(themeAnimationTimer);
+    }
+
+    html.classList.add('theme-animating');
+    runThemeOverlay(nextTheme);
+
+    requestAnimationFrame(() => {
+        applyTheme(nextTheme);
+        themeAnimationTimer = window.setTimeout(() => {
+            html.classList.remove('theme-animating');
+        }, 520);
+    });
+}
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    animateThemeSwitch(next);
+}
+
+// Update icons after DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(document.documentElement.getAttribute('data-theme') || getPreferredTheme());
+});
+
+// ── API CONFIGURATION ────────────────────────────────────────
+let API_BASE = '';
+
+(function initApiBase() {
+    const { protocol, hostname, port } = window.location;
+    API_BASE = (port && port !== '80' && port !== '443')
+        ? `${protocol}//${hostname}:${port}`
+        : `${protocol}//${hostname}`;
+    window.API_BASE = API_BASE;
+})();
+
+// ── AUTHENTICATION ───────────────────────────────────────────
+
+function getToken() {
+    return localStorage.getItem('token');
+}
+
+function setToken(token) {
+    localStorage.setItem('token', token);
+}
+
+function getStoredUser() {
+    try {
+        const raw = localStorage.getItem('user');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        localStorage.removeItem('user');
+        return null;
+    }
+}
+
+function setStoredUser(user) {
+    localStorage.setItem('user', JSON.stringify(user));
+}
+
+function removeToken() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+}
+
+function isAuthenticated() {
+    const token = getToken();
+    if (!token) return false;
+    try {
+        const { exp } = JSON.parse(atob(token.split('.')[1]));
+        return exp > Date.now() / 1000;
+    } catch {
+        return false;
+    }
+}
+
+function getAuthHeaders() {
+    const token = getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// ── CORE API REQUEST ─────────────────────────────────────────
+
+async function apiRequest(endpoint, options = {}) {
+    const token = getToken();
+    const url   = `${API_BASE}${endpoint}`;
+
+    const config = {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options.headers,
+        },
+    };
+
+    // Remove Content-Type for FormData — let browser set boundary
+    if (options.body instanceof FormData) {
+        delete config.headers['Content-Type'];
+    }
+
+    const response = await fetch(url, config);
+
+    if (response.status === 401) {
+        removeToken();
+        window.location.href = '../auth/login.html';
+        throw new Error('Authentication required');
+    }
+
+    return response;
+}
+
+// ── AUTH FUNCTIONS ───────────────────────────────────────────
 
 async function login(email, password) {
     try {
-        const response = await fetch(`${API_BASE}/api/auth/login`, {
-            method: 'POST',
+        const res  = await fetch(`${API_BASE}/api/auth/login`, {
+            method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body:    JSON.stringify({ email, password }),
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            currentUser = data.user;
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('token', data.token);
+        const data = await res.json();
+        if (res.ok) {
+            setToken(data.token);
+            setStoredUser(data.user);
             return { success: true, user: data.user };
-        } else {
-            return { success: false, error: data.error };
         }
-    } catch (error) {
+        return { success: false, error: data.error };
+    } catch {
         return { success: false, error: 'Network error. Please try again.' };
     }
 }
 
-async function register(name, email, phone, password, role = 'citizen') {
+async function register(name, email, phone, password, role) {
     try {
-        const response = await fetch(`${API_BASE}/api/auth/register`, {
-            method: 'POST',
+        const res  = await fetch(`${API_BASE}/api/auth/register`, {
+            method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone, password, role })
+            body:    JSON.stringify({ name, email, phone, password, role }),
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
+        const data = await res.json();
+        if (res.ok) {
+            if (data.token)  setToken(data.token);
+            if (data.user)   setStoredUser(data.user);
             return { success: true, user: data.user };
-        } else {
-            return { success: false, error: data.error };
         }
-    } catch (error) {
+        return { success: false, error: data.error };
+    } catch {
         return { success: false, error: 'Network error. Please try again.' };
     }
 }
 
 function logout() {
-    currentUser = null;
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = '../home/index.html';
+    removeToken();
+    window.location.href = '../auth/login.html';
 }
 
-function checkAuth() {
-    const user = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (user && token) {
-        currentUser = JSON.parse(user);
-        return true;
-    }
-    return false;
+// ── DATA FETCH HELPERS ───────────────────────────────────────
+
+async function getStats() {
+    const res = await apiRequest('/api/stats');
+    return res.json();
 }
 
-function getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-}
-
-// ==================== API FUNCTIONS ====================
-
-// Departments
-async function getDepartments() {
+/** Public stats — no auth required */
+async function getPublicStats() {
     try {
-        const response = await fetch(`${API_BASE}/api/departments`);
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching departments:', error);
-        return [];
-    }
-}
-
-// Complaints
-async function getComplaints(filters = {}) {
-    try {
-        const params = new URLSearchParams(filters);
-        const response = await fetch(`${API_BASE}/api/complaints?${params}`, {
-            headers: getAuthHeaders()
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching complaints:', error);
-        return [];
-    }
-}
-
-async function getComplaint(id) {
-    try {
-        const response = await fetch(`${API_BASE}/api/complaints/${id}`, {
-            headers: getAuthHeaders()
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching complaint:', error);
+        const res = await fetch(`${API_BASE}/api/stats/public`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    } catch {
         return null;
     }
 }
 
+async function getComplaints(filters = {}) {
+    const params = new URLSearchParams(filters);
+    const query  = params.toString();
+    const res    = await apiRequest(`/api/complaints${query ? `?${query}` : ''}`);
+    const data   = await res.json();
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.complaints)) return data.complaints;
+    return [];
+}
+
+/** Public map data — no auth required */
+async function getMapData() {
+    try {
+        const res = await fetch(`${API_BASE}/api/stats/map`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    } catch {
+        return [];
+    }
+}
+
+async function getDepartments() {
+    const res = await apiRequest('/api/departments');
+    return res.json();
+}
+
+async function getUsers(role = null, departmentId = null) {
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (departmentId) params.set('department_id', departmentId);
+    const qs = params.toString();
+    const res = await apiRequest(`/api/users${qs ? '?' + qs : ''}`);
+    return res.json();
+}
+
+async function getNotifications() {
+    const res = await apiRequest('/api/notifications');
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.notifications)) return data.notifications;
+    return [];
+}
+
+// ── COMPLAINT ACTIONS ────────────────────────────────────────
+
 async function createComplaint(formData) {
     try {
-        const response = await fetch(`${API_BASE}/api/complaints`, {
+        const res = await apiRequest('/api/complaints', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            body: formData
+            body:   formData,
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
+        const data = await res.json();
+        return res.ok ? { success: true, ...data } : { success: false, error: data.error || 'Submission failed' };
+    } catch (e) {
         return { success: false, error: 'Network error. Please try again.' };
     }
 }
 
 async function updateComplaintStatus(id, status, remarks = '') {
     try {
-        const response = await fetch(`${API_BASE}/api/complaints/${id}/status`, {
+        const res = await apiRequest(`/api/complaints/${id}/status`, {
             method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ status, remarks })
+            body:   JSON.stringify({ status, remarks }),
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
-}
-
-async function assignComplaint(id, officerId) {
-    try {
-        const response = await fetch(`${API_BASE}/api/complaints/${id}/assign`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ officer_id: officerId })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
-}
-
-async function updatePriority(id, priority) {
-    try {
-        const response = await fetch(`${API_BASE}/api/complaints/${id}/priority`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ priority })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
-}
-
-async function submitFeedback(id, feedback, reopen = false) {
-    try {
-        const response = await fetch(`${API_BASE}/api/complaints/${id}/feedback`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ feedback, reopen })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
+        const data = await res.json();
+        return res.ok ? { success: true, ...data } : { success: false, error: data.error || 'Update failed' };
+    } catch (e) {
+        return { success: false, error: 'Network error' };
     }
 }
 
 async function uploadAfterImage(id, imageFile) {
-    try {
-        const formData = new FormData();
-        formData.append('after_image', imageFile);
-        
-        const response = await fetch(`${API_BASE}/api/complaints/${id}/image`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, complaint: data.complaint };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+    const form = new FormData();
+    form.append('after_image', imageFile);
+    const res = await apiRequest(`/api/complaints/${id}/image`, {
+        method:  'POST',
+        headers: {},  // browser sets content-type with boundary
+        body:    form,
+    });
+    return res.json();
 }
 
-// Users
-async function getUsers(role = null, departmentId = null) {
-    try {
-        const params = new URLSearchParams();
-        if (role) params.append('role', role);
-        if (departmentId) params.append('department_id', departmentId);
-        
-        const response = await fetch(`${API_BASE}/api/users?${params}`, {
-            headers: getAuthHeaders()
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching users:', error);
-        return [];
-    }
-}
+// ── DEPARTMENT ACTIONS ───────────────────────────────────────
 
-async function createUser(userData) {
-    try {
-        const response = await fetch(`${API_BASE}/api/users`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(userData)
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            return { success: true, user: data.user };
-        } else {
-            return { success: false, error: data.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
-}
-
-// Departments (Admin)
 async function createDepartment(data) {
-    try {
-        const response = await fetch(`${API_BASE}/api/departments`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            return { success: true, department: result.department };
-        } else {
-            return { success: false, error: result.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+    const res = await apiRequest('/api/departments', { method: 'POST', body: JSON.stringify(data) });
+    return res.json();
 }
 
 async function updateDepartment(id, data) {
-    try {
-        const response = await fetch(`${API_BASE}/api/departments/${id}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            return { success: true, department: result.department };
-        } else {
-            return { success: false, error: result.error };
-        }
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+    const res = await apiRequest(`/api/departments/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    return res.json();
 }
 
 async function deleteDepartment(id) {
-    try {
-        const response = await fetch(`${API_BASE}/api/departments/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        const result = await response.json();
-        return { success: response.ok, message: result.message || result.error };
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+    const res = await apiRequest(`/api/departments/${id}`, { method: 'DELETE' });
+    return res.json();
 }
 
-async function deleteUser(id) {
-    try {
-        const response = await fetch(`${API_BASE}/api/users/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        const result = await response.json();
-        return { success: response.ok, message: result.message || result.error };
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+// ── USER ACTIONS ─────────────────────────────────────────────
+
+async function createUser(data) {
+    const res = await apiRequest('/api/users', { method: 'POST', body: JSON.stringify(data) });
+    return res.json();
 }
 
 async function updateUser(id, data) {
-    try {
-        const response = await fetch(`${API_BASE}/api/users/${id}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        return { success: response.ok, message: result.message || result.error };
-    } catch (error) {
-        return { success: false, error: 'Network error. Please try again.' };
-    }
+    const res = await apiRequest(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    return res.json();
 }
 
-// Statistics
-async function getStats() {
-    try {
-        const response = await fetch(`${API_BASE}/api/stats`, {
-            headers: getAuthHeaders()
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching stats:', error);
-        return { total: 0, by_status: {}, by_priority: {} };
-    }
+async function deleteUser(id) {
+    const res = await apiRequest(`/api/users/${id}`, { method: 'DELETE' });
+    return res.json();
 }
 
-// Map Data
-async function getMapData() {
-    try {
-        const response = await fetch(`${API_BASE}/api/stats/map`);
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching map data:', error);
-        return [];
-    }
-}
+// ── UI HELPERS ───────────────────────────────────────────────
 
-// Notifications
-async function getNotifications() {
-    try {
-        const response = await fetch(`${API_BASE}/api/notifications`, {
-            headers: getAuthHeaders()
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching notifications:', error);
-        return [];
-    }
-}
+/**
+ * Show a dismissible toast alert.
+ * @param {string} message
+ * @param {'info'|'success'|'danger'|'warning'} type
+ * @param {number} duration  ms before auto-dismiss (0 = never)
+ */
+function showAlert(message, type = 'info', duration = 5000) {
+    // Remove duplicates
+    document.querySelectorAll('.alert').forEach(a => a.remove());
 
-async function markNotificationRead(id) {
-    try {
-        await fetch(`${API_BASE}/api/notifications/${id}/read`, {
-            method: 'PUT',
-            headers: getAuthHeaders()
-        });
-        await loadNotificationsAndBadges(); // Automatically refresh list and badge
-    } catch (error) {
-        console.error('Error marking notification read:', error);
-    }
-}
-
-async function markAllNotificationsRead() {
-    try {
-        await fetch(`${API_BASE}/api/notifications/read-all`, {
-            method: 'PUT',
-            headers: getAuthHeaders()
-        });
-        await loadNotificationsAndBadges(); // Refresh after clearing
-    } catch (error) {
-        console.error('Error marking all notifications read:', error);
-    }
-}
-
-// REAL-TIME NOTIFICATION POLLING ENGINE
-async function loadNotificationsAndBadges() {
-    if (!currentUser) return;
-    try {
-        const notifications = await getNotifications();
-        if (!notifications) return;
-        
-        const unreadCount = notifications.filter(n => !n.is_read).length;
-        
-        const badge = document.getElementById('notification-count');
-        if (badge) {
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'inline-block';
-                badge.className = 'badge bg-danger rounded-pill ms-2 fade-in';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-        
-        // Dynamically inject notifications into the DOM section
-        const notifSection = document.getElementById('section-notifications');
-        if (notifSection) {
-            let html = '<div class="d-flex justify-content-between align-items-center mb-4">';
-            html += '<h2 class="mb-0">Your Notifications</h2>';
-            if (unreadCount > 0) {
-                html += '<button class="btn btn-sm btn-outline-custom" onclick="markAllNotificationsRead()">Mark all read</button>';
-            }
-            html += '</div>';
-            
-            if (notifications.length === 0) {
-                html += '<div class="alert alert-info-custom mt-4"><i class="bi bi-info-circle me-2"></i>You have no notifications.</div>';
-            } else {
-                html += '<div class="list-group mt-3 shadow-sm" style="border-radius: var(--radius-md); border: none;">';
-                html += notifications.map(n => renderNotification(n)).join('');
-                html += '</div>';
-            }
-            notifSection.innerHTML = html;
-        }
-    } catch (e) {
-        console.error('Polling Error:', e);
-    }
-}
-
-// Validation
-async function validateLocation(lat, lng) {
-    try {
-        const response = await fetch(`${API_BASE}/api/validate/location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ latitude: lat, longitude: lng })
-        });
-        return await response.json();
-    } catch (error) {
-        return { valid: false, error: 'Network error' };
-    }
-}
-
-async function validateKeywords(description, departmentId) {
-    try {
-        const response = await fetch(`${API_BASE}/api/validate/keywords`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ description, department_id: departmentId })
-        });
-        return await response.json();
-    } catch (error) {
-        return { valid: false, error: 'Network error' };
-    }
-}
-
-// ==================== MAP FUNCTIONS ====================
-
-function initMap(containerId, center = [22.5, 72.9], zoom = 13) {
-    if (map) {
-        map.remove();
-    }
-    
-    map = L.map(containerId).setView(center, zoom);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    
-    return map;
-}
-
-function addComplaintMarkers(complaints) {
-    // Clear existing markers
-    complaintMarkers.forEach(marker => map.removeLayer(marker));
-    complaintMarkers = [];
-    
-    const statusColors = {
-        'pending': '#f56565',
-        'assigned': '#4299e1',
-        'in_progress': '#ecc94b',
-        'completed': '#48bb78',
-        'resolved': '#2c7a7b',
-        'closed': '#718096',
-        'reopened': '#f56565'
-    };
-    
-    complaints.forEach(complaint => {
-        const color = statusColors[complaint.status] || '#718096';
-        
-        const marker = L.circleMarker([complaint.latitude, complaint.longitude], {
-            radius: 10,
-            fillColor: color,
-            color: '#fff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.8
-        }).addTo(map);
-        
-        marker.bindPopup(`
-            <strong>${complaint.title}</strong><br>
-            <span class="badge bg-${getStatusBadgeClass(complaint.status)}">${complaint.status}</span><br>
-            ${complaint.department || ''}
-        `);
-        
-        marker.on('click', () => {
-            showComplaintDetail(complaint.id);
-        });
-        
-        complaintMarkers.push(marker);
-    });
-}
-
-async function fetchAndDisplayPlaces(targetMap) {
-    if (!targetMap) targetMap = map; // fallback to global map
-    const overpassUrl = `${API_BASE}/api/proxy/overpass`;
-    
-    // Detailed query for Anand city places
-    const query = `
-        [out:json][timeout:25];
-        (
-          node["amenity"~"hospital|clinic|police|school|college|university|post_office|townhall|courthouse"](22.40,72.80,22.60,73.00);
-          node["leisure"~"park|garden"](22.40,72.80,22.60,73.00);
-          node["natural"="water"](22.40,72.80,22.60,73.00);
-        );
-        out body;
+    const el = document.createElement('div');
+    el.className = `alert alert-${type} alert-dismissible fade show`;
+    el.style.cssText = `
+        position: fixed; top: 1.5rem; right: 1.5rem;
+        z-index: 9999; min-width: 300px; max-width: 380px;
+        border: none; border-radius: 12px;
+        font-weight: 500; font-size: 0.95rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     `;
-    
-    try {
-        const response = await fetch(overpassUrl, {
-            method: 'POST',
-            body: query
-        });
-        
-        const data = await response.json();
-        
-        data.elements.forEach(element => {
-            const tags = element.tags || {};
-            const type = tags.amenity || tags.leisure || tags.natural;
-            const name = tags.name || type;
-            
-            const typeColors = {
-                'hospital': '#e53e3e', 'clinic': '#e53e3e',
-                'police': '#3182ce', 'courthouse': '#3182ce',
-                'school': '#38a169', 'college': '#805ad5', 'university': '#805ad5',
-                'post_office': '#ed8936', 'townhall': '#718096',
-                'park': '#48bb78', 'garden': '#48bb78',
-                'water': '#63b3ed'
-            };
-            
-            const color = typeColors[type] || '#718096';
-            
-            let iconLabel = '📍';
-            if (['hospital', 'clinic'].includes(type)) iconLabel = '🏥';
-            else if (['school', 'college', 'university'].includes(type)) iconLabel = '🎓';
-            else if (type === 'police') iconLabel = '👮';
-            else if (['park', 'garden'].includes(type)) iconLabel = '🌳';
-            else if (type === 'water') iconLabel = '💧';
-            else if (type === 'post_office') iconLabel = '📮';
-            else if (['townhall', 'courthouse'].includes(type)) iconLabel = '🏛️';
+    el.innerHTML = `${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+    document.body.appendChild(el);
 
-            L.circleMarker([element.lat, element.lon], {
-                radius: 6,
-                fillColor: color,
-                color: '#fff',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.9
-            }).addTo(targetMap).bindPopup(`<strong>${iconLabel} ${name}</strong><br><small class="text-muted" style="text-transform: capitalize;">${type}</small>`);
-        });
-    } catch (error) {
-        console.error('Error fetching places:', error);
+    if (duration > 0) {
+        setTimeout(() => el.isConnected && el.remove(), duration);
     }
+    return el;
 }
 
-// ==================== UI HELPERS ====================
-
-function showAlert(message, type = 'info') {
-    const alertClass = {
-        'success': 'alert-success-custom',
-        'danger': 'alert-danger-custom',
-        'warning': 'alert-warning-custom',
-        'info': 'alert-info-custom'
-    };
-    
-    const alertHtml = `
-        <div class="alert alert-custom alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-    
-    const container = document.getElementById('alert-container');
-    if (container) {
-        container.innerHTML = alertHtml;
-        setTimeout(() => {
-            const alert = container.querySelector('.alert');
-            if (alert) alert.remove();
-        }, 5000);
-    }
-}
-
-function getStatusBadgeClass(status) {
-    const classes = {
-        'pending': 'warning',
-        'assigned': 'info',
-        'in_progress': 'warning',
-        'completed': 'success',
-        'resolved': 'success',
-        'closed': 'secondary',
-        'reopened': 'danger'
-    };
-    return classes[status] || 'secondary';
-}
-
-function getPriorityBadgeClass(priority) {
-    const classes = {
-        'low': 'success',
-        'medium': 'warning',
-        'high': 'danger'
-    };
-    return classes[priority] || 'secondary';
-}
-
-function formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function renderComplaintCard(complaint) {
-    return `
-        <div class="complaint-card priority-${complaint.priority}">
-            <div class="row">
-                <div class="col-md-3">
-                    ${complaint.before_image ? 
-                        `<img src="${API_BASE}/uploads/before/${complaint.before_image}" class="complaint-image" alt="Before">` :
-                        `<div class="complaint-image bg-light d-flex align-items-center justify-content-center">
-                            <i class="bi bi-camera text-muted" style="font-size: 2rem;"></i>
-                        </div>`
-                    }
-                </div>
-                <div class="col-md-9">
-                    <h5>${complaint.title}</h5>
-                    <p class="text-muted mb-1">${complaint.description.substring(0, 100)}...</p>
-                    <div class="d-flex gap-2">
-                        <span class="department-badge">${complaint.department_name || complaint.category}</span>
-                        <span class="status-${complaint.status}">${complaint.status}</span>
-                        <span class="priority-${complaint.priority}">${complaint.priority}</span>
-                    </div>
-                    <small class="text-muted">${formatDate(complaint.created_at)}</small>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderComplaintTable(complaints) {
-    return `
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Department</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${complaints.map(c => `
-                    <tr>
-                        <td>#${c.id}</td>
-                        <td>${c.title}</td>
-                        <td>${c.department_name || c.category}</td>
-                        <td><span class="status-${c.status}">${c.status}</span></td>
-                        <td><span class="text-${c.priority === 'high' ? 'danger' : c.priority === 'medium' ? 'warning' : 'success'}">${c.priority}</span></td>
-                        <td>${formatDate(c.created_at)}</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="showComplaintDetail(${c.id})">
-                                <i class="bi bi-eye"></i> View
-                            </button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
-function renderNotification(notification) {
-    return `
-        <div class="list-group-item list-group-item-action ${notification.is_read ? '' : 'bg-light'}" 
-             onclick="markNotificationRead(${notification.id})" style="cursor: pointer;">
-            <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">${notification.title}</h6>
-                <small>${formatDate(notification.created_at)}</small>
-            </div>
-            <p class="mb-1">${notification.message}</p>
-        </div>
-    `;
-}
-
-// ==================== DASHBOARD FUNCTIONS ====================
-
-async function loadDashboardStats() {
-    const stats = await getStats();
-    
-    document.getElementById('stat-total').textContent = stats.total || 0;
-    document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
-    document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
-    document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
-    
-    return stats;
-}
-
-function renderDashboard() {
-    if (!currentUser) {
-        window.location.href = '../home/index.html';
-        return;
-    }
-    
-    // Update UI based on role
-    document.getElementById('user-name').textContent = currentUser.name;
-    document.getElementById('user-role').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-    
-    // Hide/show menu items based on role
-    const menuItems = {
-        'citizen': ['nav-home', 'nav-report', 'nav-my-complaints', 'nav-notifications', 'nav-map', 'nav-profile'],
-        'municipal': ['nav-dashboard', 'nav-departments', 'nav-officers', 'nav-all-complaints', 'nav-analytics', 'nav-map', 'nav-settings', 'nav-profile'],
-        'department': ['nav-dashboard', 'nav-dept-complaints', 'nav-assign', 'nav-analytics', 'nav-profile'],
-        'officer': ['nav-dashboard', 'nav-assigned', 'nav-update', 'nav-profile']
-    };
-    
-    // Show appropriate dashboard
-    document.querySelectorAll('.dashboard-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    const dashboardId = `dashboard-${currentUser.role}`;
-    const dashboard = document.getElementById(dashboardId);
-    if (dashboard) {
-        dashboard.style.display = 'block';
-    }
-    
-    // Initialize Real-Time Notification Engine Polling
-    loadNotificationsAndBadges();
-    if (!window.notificationInterval) {
-        window.notificationInterval = setInterval(loadNotificationsAndBadges, 30000); // Check every 30 seconds
-    }
-}
-
-// ==================== GEOLOCATION ====================
-
-function getCurrentLocation() {
-    return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new Error('Geolocation is not supported'));
-            return;
-        }
-        
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                });
-            },
-            error => {
-                reject(error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-    });
-}
-
-async function validateAndSetLocation(inputLat, inputLng) {
-    const result = await validateLocation(inputLat, inputLng);
-    
-    if (!result.valid) {
-        showAlert(result.message || 'Location is outside Anand city boundary', 'warning');
+/** Redirect to login if not authenticated. Returns false if redirected. */
+function checkAuth() {
+    if (!isAuthenticated()) {
+        window.location.href = '../auth/login.html';
         return false;
     }
-    
     return true;
 }
 
-// ==================== IMAGE HANDLING ====================
+// ── FORMATTERS ───────────────────────────────────────────────
 
-function previewImage(file, previewId) {
-    const preview = document.getElementById(previewId);
-    if (!preview) return;
-    
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
+/** Format an ISO date string to local date + short time */
+function formatDate(dateString) {
+    const d = new Date(dateString);
+    return `${d.toLocaleDateString('en-IN')} ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-function handleImageUpload(inputId, previewId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    
-    input.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                showAlert('Please select an image file', 'warning');
-                return;
-            }
-            
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showAlert('Image size must be less than 5MB', 'warning');
-                return;
-            }
-            
-            previewImage(file, previewId);
-        }
-    });
+/** Returns an accessible status badge HTML string */
+function getStatusBadge(status) {
+    const map = {
+        pending:     ['bg-warning-subtle text-warning',  'Pending'],
+        assigned:    ['bg-info-subtle text-info',        'Assigned'],
+        in_progress: ['bg-primary-subtle text-primary',  'In Progress'],
+        completed:   ['bg-success-subtle text-success',  'Completed'],
+        resolved:    ['bg-success text-white',           'Resolved'],
+        closed:      ['bg-dark text-white',              'Closed'],
+        reopened:    ['bg-danger-subtle text-danger',    'Reopened'],
+        rejected:    ['bg-danger text-white',            'Rejected'],
+        reassigned:  ['bg-secondary-subtle text-secondary','Reassigned'],
+    };
+    const [cls, label] = map[status] ?? ['bg-light text-muted', status || 'Unknown'];
+    return `<span class="badge ${cls}">${label}</span>`;
 }
 
-// ==================== CHART FUNCTIONS ====================
-
-function renderStatusChart(stats) {
-    const ctx = document.getElementById('statusChart');
-    if (!ctx) return;
-    
-    const byStatus = stats.by_status || {};
-    
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(byStatus),
-            datasets: [{
-                data: Object.values(byStatus),
-                backgroundColor: ['#f56565', '#4299e1', '#ecc94b', '#48bb78', '#2c7a7b', '#718096'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
+function getPriorityBadge(priority) {
+    const map = {
+        low:    ['bg-light text-muted', 'Low'],
+        medium: ['bg-warning-subtle text-warning', 'Medium'],
+        high:   ['bg-danger-subtle text-danger', 'High'],
+    };
+    const [cls, label] = map[priority] ?? ['bg-light text-muted', 'Unknown'];
+    return `<span class="badge ${cls} fw-semibold">${label}</span>`;
 }
 
-function renderPriorityChart(stats) {
-    const ctx = document.getElementById('priorityChart');
-    if (!ctx) return;
-    
-    const byPriority = stats.by_priority || {};
-    
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(byPriority).map(p => p.charAt(0).toUpperCase() + p.slice(1)),
-            datasets: [{
-                label: 'Complaints by Priority',
-                data: Object.values(byPriority),
-                backgroundColor: ['#48bb78', '#ecc94b', '#f56565'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+function getRoleBadge(role) {
+    const map = {
+        citizen:    ['bg-light text-muted',     'Citizen'],
+        officer:    ['bg-primary-subtle text-primary', 'Officer'],
+        department: ['bg-info-subtle text-info', 'Department'],
+        municipal:  ['bg-success-subtle text-success', 'Municipal'],
+    };
+    const [cls, label] = map[role] ?? ['bg-light text-muted', 'Unknown'];
+    return `<span class="badge ${cls} fw-semibold">${label}</span>`;
 }
 
-// ==================== MODAL FUNCTIONS ====================
-
-function showComplaintDetail(id) {
-    getComplaint(id).then(complaint => {
-        if (!complaint) {
-            showAlert('Complaint not found', 'danger');
-            return;
-        }
-        
-        const modalContent = document.getElementById('complaint-detail-content');
-        if (!modalContent) return;
-        
-        modalContent.innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    ${complaint.before_image ? 
-                        `<img src="${API_BASE}/uploads/before/${complaint.before_image}" class="img-fluid rounded" alt="Before">` :
-                        `<div class="bg-light p-5 text-center rounded"><i class="bi bi-camera" style="font-size: 3rem;"></i></div>`
-                    }
-                    ${complaint.after_image ? 
-                        `<div class="mt-3"><h6>After Image</h6><img src="${API_BASE}/uploads/after/${complaint.after_image}" class="img-fluid rounded" alt="After"></div>` : ''
-                    }
-                </div>
-                <div class="col-md-6">
-                    <h4>${complaint.title}</h4>
-                    <p class="text-muted">${complaint.description}</p>
-                    
-                    <table class="table table-sm">
-                        <tr><td><strong>Department:</strong></td><td>${complaint.department_name}</td></tr>
-                        <tr><td><strong>Status:</strong></td><td><span class="status-${complaint.status}">${complaint.status}</span></td></tr>
-                        <tr><td><strong>Priority:</strong></td><td><span class="priority-${complaint.priority}">${complaint.priority}</span></td></tr>
-                        <tr><td><strong>Address:</strong></td><td>${complaint.address || 'N/A'}</td></tr>
-                        <tr><td><strong>Submitted:</strong></td><td>${formatDate(complaint.created_at)}</td></tr>
-                        ${complaint.officer_name ? `<tr><td><strong>Officer:</strong></td><td>${complaint.officer_name}</td></tr>` : ''}
-                        ${complaint.remarks ? `<tr><td><strong>Remarks:</strong></td><td>${complaint.remarks}</td></tr>` : ''}
-                    </table>
-                    
-                    <div id="detail-map-${complaint.id}" style="height: 250px; border-radius: 8px; border: 1px solid #dee2e6;" class="mt-3 mb-3"></div>
-                    
-                    ${renderActionButtons(complaint)}
-                </div>
-            </div>
-        `;
-        
-        const modalElement = document.getElementById('complaintDetailModal');
-        const modal = new bootstrap.Modal(modalElement);
-        
-        modalElement.addEventListener('shown.bs.modal', function onModalShown() {
-            const mapContainer = document.getElementById(`detail-map-${complaint.id}`);
-            if (mapContainer && complaint.latitude && complaint.longitude && !mapContainer._leaflet_id) {
-                const map = L.map(mapContainer).setView([complaint.latitude, complaint.longitude], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                L.marker([complaint.latitude, complaint.longitude]).addTo(map).bindPopup(complaint.title).openPopup();
-            }
-            modalElement.removeEventListener('shown.bs.modal', onModalShown);
+// ── EXPORTS ──────────────────────────────────────────────────
+// Assign complaint to officer (department/municipal)
+async function assignOfficer(complaintId, officerId, deadlineDays = 7) {
+    try {
+        const res = await fetch(`${API_BASE}/api/complaints/${complaintId}/assign`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ officer_id: officerId, deadline_days: deadlineDays })
         });
-        
-        modal.show();
-    });
-}
-
-function renderActionButtons(complaint) {
-    if (complaint.status === 'closed') {
-        return `
-            <div class="mt-3 text-success p-2 rounded" style="background-color: #f0fdf4; border: 1px solid #bbf7d0;">
-                <i class="bi bi-check-circle-fill"></i> <strong>This issue has been successfully closed and permanently resolved.</strong>
-            </div>
-        `;
-    }
-
-    if (currentUser.role === 'municipal' || currentUser.role === 'department') {
-        let options = '<option value="">Select Action...</option>';
-        if (complaint.status === 'pending' || complaint.status === 'reopened') {
-            options += `
-                <option value="assigned">Assign to Officer</option>
-                <option value="in_progress">Start Progress</option>
-                <option value="resolved">Mark Resolved</option>
-                <option value="rejected">Reject Issue</option>
-            `;
-        } else if (complaint.status === 'completed') {
-            options += `
-                <option value="resolved">Approve & Mark Resolved</option>
-                <option value="reassigned">Reject Work & Reassign to Officer</option>
-            `;
-        } else if (complaint.status === 'assigned' || complaint.status === 'in_progress' || complaint.status === 'reassigned') {
-            return '<div class="mt-3 p-2 text-primary bg-light rounded text-center small border"><i class="bi bi-person-workspace"></i> Field Officer is currently working on this ticket. Action locked.</div>';
-        } else if (complaint.status === 'resolved') {
-            return '<div class="mt-3 p-2 text-success bg-light rounded text-center small border"><i class="bi bi-check2-circle"></i> Resolved. Waiting for Citizen approval.</div>';
-        } else if (complaint.status === 'rejected') {
-            return '<div class="mt-3 p-2 text-danger bg-light rounded text-center small border"><i class="bi bi-x-circle"></i> You have forcefully rejected this issue.</div>';
-        }
-
-        return `
-            <div class="mt-3">
-                <h6>Actions</h6>
-                <select id="action-status" class="form-select mb-2" onchange="handleStatusChange(${complaint.id}, this.value)">
-                    ${options}
-                </select>
-                <select id="action-priority" class="form-select" onchange="handlePriorityChange(${complaint.id}, this.value)">
-                    <option value="">Set Priority...</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
-        `;
-    }
-    
-    if (currentUser.role === 'officer' && complaint.officer_id === currentUser.id) {
-        if (complaint.status === 'assigned' || complaint.status === 'reassigned' || complaint.status === 'in_progress' || complaint.status === 'reopened') {
-            return `
-                <div class="mt-3">
-                    <h6>Update Status</h6>
-                    <select id="officer-status" class="form-select mb-2" onchange="handleOfficerStatusUpdate(${complaint.id}, this.value)">
-                        <option value="">Select Status...</option>
-                        <option value="in_progress">Start Working</option>
-                        <option value="completed">Complete Work</option>
-                    </select>
-                    <textarea id="officer-remarks" class="form-control mb-2" placeholder="Add remarks..."></textarea>
-                    <input type="file" id="after-image" class="form-control" accept="image/*">
-                    <button class="btn btn-primary mt-2" onclick="submitOfficerUpdate(${complaint.id})">Submit Update</button>
-                </div>
-            `;
-        } else {
-            return '<div class="mt-3 p-2 text-muted bg-light rounded text-center small border"><i class="bi bi-shield-lock"></i> Action securely locked. Pending review or already closed.</div>';
-        }
-    }
-    
-    if (currentUser.role === 'citizen' && complaint.citizen_id === currentUser.id) {
-        if (complaint.status === 'resolved') {
-            return `
-                <div class="mt-3 p-3 rounded" style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
-                    <h6>Issue Resolution Feedback</h6>
-                    <p class="small text-muted mb-2">The department has marked this resolved. Do you accept the work?</p>
-                    <textarea id="citizen-feedback" class="form-control mb-2" placeholder="Add feedback before closing..." rows="2"></textarea>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-success flex-grow-1" onclick="submitCitizenFeedback(${complaint.id}, true)">Accept & Close Issue</button>
-                        <button class="btn btn-outline-danger" onclick="submitCitizenFeedback(${complaint.id}, false)">Reopen Issue</button>
-                    </div>
-                </div>
-            `;
-        } else {
-            return '<div class="mt-3 p-2 text-muted bg-light rounded text-center small border"><i class="bi bi-hourglass-split"></i> Issue is currently being processed by the system.</div>';
-        }
-    }
-    
-    return '';
-}
-
-async function handleStatusChange(id, status) {
-    if (!status) return;
-    
-    const result = await updateComplaintStatus(id, status);
-    if (result.success) {
-        showAlert('Status updated successfully', 'success');
-        location.reload();
-    } else {
-        showAlert(result.error, 'danger');
+        const data = await res.json();
+        return res.ok ? { success: true, ...data } : { success: false, error: data.error || 'Assignment failed' };
+    } catch (e) {
+        return { success: false, error: 'Network error' };
     }
 }
 
-async function handlePriorityChange(id, priority) {
-    if (!priority) return;
-    
-    const result = await updatePriority(id, priority);
-    if (result.success) {
-        showAlert('Priority updated successfully', 'success');
-    } else {
-        showAlert(result.error, 'danger');
+// Update complaint priority (department only)
+async function updatePriority(complaintId, priority) {
+    try {
+        const res = await apiRequest(`/api/complaints/${complaintId}/priority`, {
+            method: 'PUT',
+            body: JSON.stringify({ priority })
+        });
+        const data = await res.json();
+        return res.ok ? { success: true, ...data } : { success: false, error: data.error || 'Priority update failed' };
+    } catch (e) {
+        return { success: false, error: 'Network error' };
     }
 }
 
-async function handleOfficerStatusUpdate(id, status) {
-    if (!status) return;
-    
-    const remarks = document.getElementById('officer-remarks')?.value || '';
-    
-    const result = await updateComplaintStatus(id, status, remarks);
-    if (result.success) {
-        showAlert('Status updated successfully', 'success');
-        
-        // Upload after image if provided
-        const imageInput = document.getElementById('after-image');
-        if (imageInput && imageInput.files[0]) {
-            await uploadAfterImage(id, imageInput.files[0]);
-        }
-        
-        location.reload();
-    } else {
-        showAlert(result.error, 'danger');
+// Citizen feedback: close or reopen a resolved complaint
+async function submitFeedback(complaintId, feedback, reopen = false) {
+    try {
+        const res = await apiRequest(`/api/complaints/${complaintId}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify({ feedback, reopen })
+        });
+        const data = await res.json();
+        return res.ok ? { success: true, ...data } : { success: false, error: data.error || 'Feedback failed' };
+    } catch (e) {
+        return { success: false, error: 'Network error' };
     }
 }
 
-async function submitOfficerUpdate(id) {
-    const status = document.getElementById('officer-status')?.value;
-    const remarks = document.getElementById('officer-remarks')?.value || '';
-    
-    if (!status) {
-        showAlert('Please select a status', 'warning');
-        return;
-    }
-    
-    const result = await updateComplaintStatus(id, status, remarks);
-    
-    if (result.success) {
-        const imageInput = document.getElementById('after-image');
-        if (imageInput && imageInput.files[0]) {
-            await uploadAfterImage(id, imageInput.files[0]);
-        }
-        
-        showAlert('Update submitted successfully', 'success');
-        location.reload();
-    } else {
-        showAlert(result.error, 'danger');
-    }
-}
-
-async function submitCitizenFeedback(id, accept) {
-    const feedback = document.getElementById('citizen-feedback')?.value || (accept ? 'Accepted' : 'Not satisfied');
-    
-    const result = await submitFeedback(id, feedback, !accept);
-    
-    if (result.success) {
-        showAlert(accept ? 'Thank you for your feedback!' : 'Complaint has been reopened', accept ? 'success' : 'warning');
-        location.reload();
-    } else {
-        showAlert(result.error, 'danger');
-    }
-}
-
-// ==================== INITIALIZATION ====================
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Check if user is logged in for dashboard pages
-    if (window.location.pathname.includes('dashboard')) {
-        if (!checkAuth()) {
-            window.location.href = '../auth/login.html';
-            return;
-        }
-        renderDashboard();
-    }
-    
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+Object.assign(window, {
+    API_BASE,
+    getToken, setToken, getStoredUser, setStoredUser, removeToken,
+    isAuthenticated, getAuthHeaders,
+    login, register, logout,
+    getStats, getPublicStats, getMapData,
+    getComplaints, getDepartments, getUsers, getNotifications,
+    createComplaint, updateComplaintStatus, uploadAfterImage,
+    createDepartment, updateDepartment, deleteDepartment,
+    createUser, updateUser, deleteUser,
+    assignOfficer, updatePriority, submitFeedback, toggleTheme,
+    showAlert, checkAuth,
+    formatDate, getStatusBadge, getPriorityBadge, getRoleBadge,
 });
+
+// ── OVERPASS API MAP POIS ──────────────────────────────────
+window.loadMapPOIs = async function(mapObj) {
+    if(!mapObj) return;
+    const bbox = "22.52,72.90,22.58,72.98"; 
+    const query = `[out:json][timeout:25];(node["amenity"~"hospital|college|university|police|school"](${bbox});node["leisure"~"park|garden"](${bbox});node["waterway"~"river|pond"](${bbox});node["office"~"government"](${bbox}););out body;`;
+    
+    try {
+        const res = await fetch(`${API_BASE}/api/proxy/overpass`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: query
+        });
+        const data = await res.json();
+        
+        const myIcons = { hospital: '🏥', college: '🎓', university: '🎓', school: '🎒', police: '🚓', park: '🌳', garden: '🌷', river: '🌊', pond: '🦆', government: '🏛️', default: '📍' };
+        
+        if (data && data.elements) {
+            data.elements.forEach(el => {
+                if(el.type === 'node') {
+                    const type = el.tags.amenity || el.tags.leisure || el.tags.waterway || el.tags.office || 'default';
+                    const iconEmoji = myIcons[type] || myIcons.default;
+                    const name = el.tags.name || type.charAt(0).toUpperCase() + type.slice(1);
+                    
+                    const markerIcon = L.divIcon({
+                        html: `<div style="font-size:24px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));">${iconEmoji}</div>`,
+                        className: 'poi-icon',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    
+                    L.marker([el.lat, el.lon], {icon: markerIcon})
+                     .bindPopup(`<b>${name}</b><br><small class="text-muted text-uppercase">${type}</small>`)
+                     .addTo(mapObj);
+                }
+            });
+        }
+    } catch(e) { console.error("POIs failed to load", e); }
+};
+
+// ── GLOBAL MODAL RENDERING: COMPLAINT DETAILS ───────────────
+window.showComplaintDetail = async function(id) {
+    // Show loading text
+    const content = document.getElementById('complaint-detail-content');
+    if (!content) return;
+    content.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading Details...</p></div>';
+    
+    // Open the bootstrap modal
+    const modalEl = document.getElementById('complaintDetailModal');
+    let modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // Fetch complaint data
+    try {
+        const complaints = await getComplaints(); // From main.js
+        const c = complaints.find(x => x.id === id);
+        if(!c) { content.innerHTML = '<div class="alert alert-danger">Complaint not found</div>'; return; }
+        
+        let pBadge = c.priority || 'medium';
+        const latMap = parseFloat(c.latitude).toFixed(4);
+        const lngMap = parseFloat(c.longitude).toFixed(4);
+
+        let imgHTML = '';
+        if (c.before_image || c.after_image) {
+            imgHTML = `<div class="row mt-3 mb-3">
+                ${c.before_image ? `<div class="col-md-6"><strong class="text-muted small">ISSUE (BEFORE)</strong><img src="${API_BASE}/uploads/before/${c.before_image}" class="img-fluid rounded border mt-1" style="max-height:250px;object-fit:cover;width:100%"></div>` : ''}
+                ${c.after_image ? `<div class="col-md-6"><strong class="text-success small">RESOLVED (AFTER)</strong><img src="${API_BASE}/uploads/after/${c.after_image}" class="img-fluid rounded border border-success border-2 mt-1" style="max-height:250px;object-fit:cover;width:100%"></div>` : ''}
+            </div>`;
+        }
+        
+        content.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold mb-0">${c.title}</h4>
+                <div>
+                    <span class="badge status-${c.status} me-2">${c.status.toUpperCase()}</span>
+                    <span class="badge priority-${pBadge}">${pBadge.toUpperCase()}</span>
+                </div>
+            </div>
+            <p class="text-secondary">${c.description}</p>
+            
+            ${imgHTML}
+            
+            <div class="bg-light p-3 rounded d-flex align-items-center gap-3">
+                <i class="bi bi-geo-alt-fill text-danger fs-4"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold">Live GPS Location</h6>
+                    <small class="text-muted">Latitude: ${latMap}, Longitude: ${lngMap}</small>
+                </div>
+                <a href="https://www.google.com/maps/search/?api=1&query=${c.latitude},${c.longitude}" target="_blank" class="btn btn-sm btn-outline-primary ms-auto">Open in Google Maps</a>
+            </div>
+        `;
+    } catch(e) {
+        content.innerHTML = '<div class="alert alert-danger">Failed to load details</div>';
+    }
+};

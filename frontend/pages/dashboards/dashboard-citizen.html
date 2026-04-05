@@ -1,621 +1,3057 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citizen Dashboard - Anand Civic Issues</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="../../public/css/style.css?v=3.0">
+    <title>FIXED SECURE DASHBOARD - YOU ARE SEEING NEW CODE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* ─── DESIGN TOKENS ─────────────────────────────────────── */
+        :root {
+            --indigo-50: #eef2ff;
+            --indigo-100: #e0e7ff;
+            --indigo-200: #c7d2fe;
+            --indigo-400: #818cf8;
+            --indigo-500: #6366f1;
+            --indigo-600: #4f46e5;
+            --indigo-700: #4338ca;
+
+            --emerald-50: #ecfdf5;
+            --emerald-100: #d1fae5;
+            --emerald-400: #34d399;
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+
+            --amber-50: #fffbeb;
+            --amber-100: #fef3c7;
+            --amber-400: #fbbf24;
+            --amber-500: #f59e0b;
+
+            --rose-50: #fff1f2;
+            --rose-100: #ffe4e6;
+            --rose-400: #fb7185;
+            --rose-500: #f43f5e;
+
+            --sky-50: #f0f9ff;
+            --sky-100: #e0f2fe;
+            --sky-400: #38bdf8;
+            --sky-500: #0ea5e9;
+
+            --violet-500: #8b5cf6;
+            --violet-600: #7c3aed;
+
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+
+            /* Semantic */
+            --primary: var(--indigo-600);
+            --primary-light: var(--indigo-50);
+            --primary-hover: var(--indigo-700);
+            --success: var(--emerald-500);
+            --success-light: var(--emerald-50);
+            --warning: var(--amber-500);
+            --warning-light: var(--amber-50);
+            --danger: var(--rose-500);
+            --danger-light: var(--rose-50);
+            --info: var(--sky-500);
+            --info-light: var(--sky-50);
+
+            /* Layout */
+            --sidebar-w: 260px;
+            --header-h: 68px;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, .08), 0 2px 6px rgba(0, 0, 0, .04);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, .12), 0 4px 16px rgba(0, 0, 0, .06);
+
+            /* Surfaces */
+            --bg-app: #f0f4ff;
+            --bg-card: #ffffff;
+            --border: var(--gray-200);
+        }
+
+        [data-theme="dark"] {
+            --indigo-50: rgba(212, 168, 67, 0.12);
+            --indigo-100: rgba(212, 168, 67, 0.18);
+            --indigo-200: rgba(212, 168, 67, 0.28);
+            --indigo-400: #e7c878;
+            --indigo-500: #d4a843;
+            --indigo-600: #c79422;
+            --indigo-700: #b88310;
+
+            --emerald-50: rgba(52, 211, 153, 0.12);
+            --emerald-100: rgba(52, 211, 153, 0.18);
+            --amber-50: rgba(251, 191, 36, 0.12);
+            --amber-100: rgba(251, 191, 36, 0.18);
+            --rose-50: rgba(251, 113, 133, 0.12);
+            --rose-100: rgba(251, 113, 133, 0.18);
+            --sky-50: rgba(56, 189, 248, 0.12);
+            --sky-100: rgba(56, 189, 248, 0.18);
+            --violet-500: #f0cc72;
+            --violet-600: #d4a843;
+
+            --gray-50: #161616;
+            --gray-100: #1f1f1f;
+            --gray-200: #2a2a2a;
+            --gray-300: #3a3a3a;
+            --gray-400: #8b8b93;
+            --gray-500: #a1a1aa;
+            --gray-600: #c5c5cc;
+            --gray-700: #e4e4e7;
+            --gray-800: #f3f4f6;
+            --gray-900: #fafafa;
+
+            --primary: #d4a843;
+            --primary-light: rgba(212, 168, 67, 0.12);
+            --primary-hover: #e7c878;
+            --success: #34d399;
+            --success-light: rgba(52, 211, 153, 0.12);
+            --warning: #fbbf24;
+            --warning-light: rgba(251, 191, 36, 0.12);
+            --danger: #fb7185;
+            --danger-light: rgba(251, 113, 133, 0.12);
+            --info: #38bdf8;
+            --info-light: rgba(56, 189, 248, 0.12);
+
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, .28), 0 1px 2px rgba(0, 0, 0, .2);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, .32), 0 2px 6px rgba(0, 0, 0, .22);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, .45), 0 4px 16px rgba(0, 0, 0, .28);
+
+            --bg-app: #090909;
+            --bg-card: #141414;
+            --border: #27272a;
+
+            color-scheme: dark;
+        }
+
+        /* ─── RESET & BASE ───────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-app);
+            color: var(--gray-800);
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font: inherit;
+        }
+
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        /* ─── SCROLLBAR ──────────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 99px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-400);
+        }
+
+        /* ─── APP SHELL ──────────────────────────────────────────── */
+        .app-shell {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ─── SIDEBAR OVERLAY (mobile) ───────────────────────────── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 20, 40, .45);
+            backdrop-filter: blur(3px);
+            z-index: 1039;
+            opacity: 0;
+            transition: opacity .25s;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ─── SIDEBAR ────────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: #fff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 1040;
+            transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+            position: relative;
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--indigo-600), var(--violet-500));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, .35);
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-icon i {
+            color: #fff;
+            font-size: 1.25rem;
+        }
+
+        .sidebar-brand-text .name {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--gray-900);
+            letter-spacing: -.01em;
+            line-height: 1.2;
+        }
+
+        .sidebar-brand-text .tagline {
+            font-size: .72rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+        }
+
+        .sidebar-section-label {
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--gray-400);
+            padding: 0 8px;
+            margin: 16px 0 6px;
+        }
+
+        .sidebar-section-label:first-child {
+            margin-top: 0;
+        }
+
+        .nav-item {
+            list-style: none;
+            position: relative;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: .875rem;
+            color: var(--gray-500);
+            transition: all .18s ease;
+            position: relative;
+        }
+
+        .nav-link i {
+            font-size: 1.05rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-link:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .nav-link.active {
+            background: var(--indigo-50);
+            color: var(--indigo-600);
+            font-weight: 600;
+        }
+
+        .nav-link.active i {
+            color: var(--indigo-500);
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--rose-500);
+            color: #fff;
+            font-size: .68rem;
+            font-weight: 700;
+            border-radius: 99px;
+            padding: 2px 7px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px 12px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .sidebar-user:hover {
+            background: var(--gray-50);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--indigo-500), var(--violet-500));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: .8rem;
+            flex-shrink: 0;
+        }
+
+        .avatar.sm {
+            width: 28px;
+            height: 28px;
+            font-size: .7rem;
+        }
+
+        .sidebar-user-info .u-name {
+            font-weight: 600;
+            font-size: .8rem;
+            color: var(--gray-800);
+            line-height: 1.2;
+        }
+
+        .sidebar-user-info .u-role {
+            font-size: .7rem;
+            color: var(--gray-400);
+        }
+
+        /* ─── MAIN ───────────────────────────────────────────────── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* ─── TOP BAR ────────────────────────────────────────────── */
+        .topbar {
+            height: var(--header-h);
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 16px;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+            z-index: 1030;
+        }
+
+        .topbar-hamburger {
+            display: none;
+            width: 36px;
+            height: 36px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: var(--gray-600);
+            transition: background .15s;
+        }
+
+        .topbar-hamburger:hover {
+            background: var(--gray-100);
+        }
+
+        .topbar-hamburger i {
+            font-size: 1.3rem;
+        }
+
+        .topbar-title {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--gray-900);
+        }
+
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--gray-50);
+            color: var(--gray-500);
+            border: 1px solid var(--border);
+            transition: all .15s;
+            position: relative;
+        }
+
+        .topbar-btn:hover {
+            background: var(--indigo-50);
+            color: var(--indigo-600);
+            border-color: var(--indigo-200);
+        }
+
+        .topbar-btn .dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background: var(--rose-500);
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .topbar-profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px 5px 6px;
+            background: var(--gray-50);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .topbar-profile:hover {
+            background: var(--indigo-50);
+            border-color: var(--indigo-200);
+        }
+
+        .topbar-profile .pname {
+            font-weight: 600;
+            font-size: .8rem;
+            color: var(--gray-700);
+        }
+
+        .topbar-profile .pchev {
+            color: var(--gray-400);
+            font-size: .75rem;
+        }
+
+        .theme-toggle {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--gray-50);
+            color: var(--gray-600);
+            border: 1px solid var(--border);
+            transition: all .18s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .theme-toggle:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--indigo-200);
+            transform: rotate(12deg);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: #181818;
+            border-color: rgba(212, 168, 67, 0.22);
+            color: var(--primary);
+        }
+
+        /* dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            padding: 6px;
+            z-index: 2000;
+            animation: dropIn .15s ease;
+        }
+
+        @keyframes dropIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown.open .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: .84rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: background .12s;
+        }
+
+        .dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .dropdown-item.danger {
+            color: var(--rose-500);
+        }
+
+        .dropdown-item.danger:hover {
+            background: var(--rose-50);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--gray-100);
+            margin: 4px 0;
+        }
+
+        /* ─── PAGE CONTENT ───────────────────────────────────────── */
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+        }
+
+        /* ─── SECTION ────────────────────────────────────────────── */
+        .section {
+            display: none;
+            animation: fadeUp .3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-heading {
+            margin-bottom: 24px;
+        }
+
+        .page-heading h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.2;
+        }
+
+        .page-heading p {
+            color: var(--gray-500);
+            font-size: .9rem;
+            margin-top: 4px;
+        }
+
+        /* ─── CARD ───────────────────────────────────────────────── */
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-header h5 {
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--gray-800);
+        }
+
+        .card-body {
+            padding: 22px;
+        }
+
+        /* ─── STAT CARDS ─────────────────────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 22px 20px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+            transition: transform .2s, box-shadow .2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        .stat-card.total::before {
+            background: linear-gradient(90deg, var(--indigo-500), var(--violet-500));
+        }
+
+        .stat-card.pending::before {
+            background: linear-gradient(90deg, var(--amber-400), var(--amber-500));
+        }
+
+        .stat-card.progress::before {
+            background: linear-gradient(90deg, var(--sky-400), var(--sky-500));
+        }
+
+        .stat-card.resolved::before {
+            background: linear-gradient(90deg, var(--emerald-400), var(--emerald-500));
+        }
+
+        .stat-icon-wrap {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            font-size: 1.2rem;
+        }
+
+        .stat-card.total .stat-icon-wrap {
+            background: var(--indigo-50);
+            color: var(--indigo-600);
+        }
+
+        .stat-card.pending .stat-icon-wrap {
+            background: var(--amber-50);
+            color: var(--amber-500);
+        }
+
+        .stat-card.progress .stat-icon-wrap {
+            background: var(--sky-50);
+            color: var(--sky-500);
+        }
+
+        .stat-card.resolved .stat-icon-wrap {
+            background: var(--emerald-50);
+            color: var(--emerald-500);
+        }
+
+        .stat-number {
+            font-family: 'Sora', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-card.total .stat-number {
+            color: var(--indigo-600);
+        }
+
+        .stat-card.pending .stat-number {
+            color: var(--amber-500);
+        }
+
+        .stat-card.progress .stat-number {
+            color: var(--sky-500);
+        }
+
+        .stat-card.resolved .stat-number {
+            color: var(--emerald-500);
+        }
+
+        .stat-label {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        .stat-trend {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            font-size: .72rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .stat-trend.up {
+            color: var(--emerald-500);
+        }
+
+        /* ─── ALERT ──────────────────────────────────────────────── */
+        .alert-container {
+            margin-bottom: 16px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            font-size: .875rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+            animation: fadeUp .2s ease;
+        }
+
+        .alert-success {
+            background: var(--emerald-50);
+            color: #065f46;
+            border-color: var(--emerald-100);
+        }
+
+        .alert-danger {
+            background: var(--rose-50);
+            color: #9f1239;
+            border-color: var(--rose-100);
+        }
+
+        .alert-warning {
+            background: var(--amber-50);
+            color: #92400e;
+            border-color: var(--amber-100);
+        }
+
+        .alert-info {
+            background: var(--sky-50);
+            color: #0369a1;
+            border-color: var(--sky-100);
+        }
+
+        .alert i {
+            margin-top: 1px;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .alert-close {
+            margin-left: auto;
+            cursor: pointer;
+            opacity: .5;
+            font-size: 1rem;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        /* ─── BUTTONS ────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: .84rem;
+            transition: all .18s ease;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--indigo-600);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, .3);
+        }
+
+        .btn-primary:hover {
+            background: var(--indigo-700);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, .4);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--emerald-500);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, .25);
+        }
+
+        .btn-success:hover {
+            background: var(--emerald-600);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--gray-600);
+            border-color: var(--border);
+        }
+
+        .btn-outline:hover {
+            background: var(--gray-50);
+            color: var(--gray-800);
+        }
+
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--indigo-600);
+            border-color: var(--indigo-200);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--indigo-50);
+        }
+
+        .btn-sm {
+            padding: 6px 13px;
+            font-size: .78rem;
+            border-radius: 8px;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-500);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        /* ─── FORM ELEMENTS ──────────────────────────────────────── */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+            letter-spacing: .01em;
+        }
+
+        .form-control,
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--gray-50);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: .875rem;
+            color: var(--gray-800);
+            transition: all .15s;
+            outline: none;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: #fff;
+            border-color: var(--indigo-400);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, .12);
+        }
+
+        .form-control::placeholder {
+            color: var(--gray-400);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 110px;
+        }
+
+        .form-hint {
+            font-size: .75rem;
+            color: var(--gray-400);
+            margin-top: 5px;
+        }
+
+        .form-hint.warning {
+            color: var(--amber-500);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-group .form-control {
+            flex: 1;
+        }
+
+        /* ─── TABS ───────────────────────────────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: var(--gray-100);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            white-space: nowrap;
+            transition: all .18s;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: var(--indigo-600);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ─── COMPLAINT CARD ─────────────────────────────────────── */
+        .complaint-item {
+            display: flex;
+            gap: 16px;
+            padding: 18px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            background: #fff;
+            margin-bottom: 12px;
+            transition: all .18s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .complaint-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .complaint-item.priority-high::before {
+            background: var(--rose-400);
+        }
+
+        .complaint-item.priority-medium::before {
+            background: var(--amber-400);
+        }
+
+        .complaint-item.priority-low::before {
+            background: var(--emerald-400);
+        }
+
+        .complaint-item:hover {
+            border-color: var(--indigo-200);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .complaint-thumb {
+            width: 72px;
+            height: 72px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+            font-size: 1.4rem;
+        }
+
+        .complaint-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+        }
+
+        .complaint-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .complaint-title {
+            font-weight: 700;
+            font-size: .9rem;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .complaint-desc {
+            font-size: .8rem;
+            color: var(--gray-500);
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .complaint-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .complaint-meta span {
+            font-size: .72rem;
+            color: var(--gray-400);
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .complaint-end {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        /* ─── BADGES ─────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        .badge-pending {
+            background: var(--amber-50);
+            color: var(--amber-500);
+            border: 1px solid var(--amber-100);
+        }
+
+        .badge-progress {
+            background: var(--sky-50);
+            color: var(--sky-500);
+            border: 1px solid var(--sky-100);
+        }
+
+        .badge-resolved {
+            background: var(--emerald-50);
+            color: var(--emerald-600);
+            border: 1px solid var(--emerald-100);
+        }
+
+        .badge-closed {
+            background: var(--gray-100);
+            color: var(--gray-500);
+            border: 1px solid var(--gray-200);
+        }
+
+        .badge-high {
+            background: var(--rose-50);
+            color: var(--rose-500);
+            border: 1px solid var(--rose-100);
+        }
+
+        .badge-medium {
+            background: var(--amber-50);
+            color: var(--amber-500);
+            border: 1px solid var(--amber-100);
+        }
+
+        .badge-low {
+            background: var(--emerald-50);
+            color: var(--emerald-500);
+            border: 1px solid var(--emerald-100);
+        }
+
+        .badge-primary {
+            background: var(--indigo-50);
+            color: var(--indigo-600);
+            border: 1px solid var(--indigo-100);
+        }
+
+        /* ─── MAP SECTION ────────────────────────────────────────── */
+        .map-container {
+            height: 520px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        /* ─── NOTIFICATION ITEM ──────────────────────────────────── */
+        .notif-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px 18px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            background: #fff;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .notif-item.unread {
+            background: var(--indigo-50);
+            border-color: var(--indigo-100);
+        }
+
+        .notif-item:hover {
+            border-color: var(--indigo-300);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .notif-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+
+        .notif-icon.info {
+            background: var(--sky-50);
+            color: var(--sky-500);
+        }
+
+        .notif-icon.success {
+            background: var(--emerald-50);
+            color: var(--emerald-500);
+        }
+
+        .notif-icon.warning {
+            background: var(--amber-50);
+            color: var(--amber-500);
+        }
+
+        .notif-body {
+            flex: 1;
+        }
+
+        .notif-title {
+            font-weight: 700;
+            font-size: .875rem;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .notif-msg {
+            font-size: .8rem;
+            color: var(--gray-500);
+        }
+
+        .notif-time {
+            font-size: .72rem;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        /* ─── PROFILE SECTION ────────────────────────────────────── */
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 28px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, var(--indigo-50), #fff 60%);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-avatar {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, var(--indigo-500), var(--violet-500));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 28px rgba(99, 102, 241, .35);
+        }
+
+        .profile-name {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .profile-email {
+            font-size: .85rem;
+            color: var(--gray-500);
+            margin-top: 3px;
+        }
+
+        .profile-table {
+            width: 100%;
+        }
+
+        .profile-table tr {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .profile-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .profile-table td {
+            padding: 12px 0;
+            font-size: .875rem;
+        }
+
+        .profile-table td:first-child {
+            font-weight: 600;
+            color: var(--gray-500);
+            width: 130px;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .profile-table td:last-child {
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        /* ─── PHOTO UPLOAD ───────────────────────────────────────── */
+        .photo-upload {
+            border: 2px dashed var(--indigo-200);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            text-align: center;
+            background: var(--indigo-50);
+            transition: all .2s;
+            cursor: pointer;
+        }
+
+        .photo-upload:hover {
+            border-color: var(--indigo-400);
+            background: #eef2ff;
+        }
+
+        .photo-upload input {
+            display: none;
+        }
+
+        .photo-upload .ph-icon {
+            font-size: 2rem;
+            color: var(--indigo-400);
+            margin-bottom: 8px;
+        }
+
+        .photo-upload .ph-text {
+            font-size: .82rem;
+            color: var(--gray-500);
+        }
+
+        .photo-upload .ph-label {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--indigo-600);
+        }
+
+        #image-preview-wrap {
+            display: none;
+            margin-top: 12px;
+        }
+
+        #image-preview-wrap img {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+        }
+
+        /* ─── LOCATION BOX ───────────────────────────────────────── */
+        .location-status {
+            font-size: .8rem;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .location-status.success {
+            background: var(--emerald-50);
+            color: #065f46;
+        }
+
+        .location-status.error {
+            background: var(--rose-50);
+            color: #9f1239;
+        }
+
+        .location-status.loading {
+            background: var(--sky-50);
+            color: #0369a1;
+        }
+
+        #map-preview {
+            height: 200px;
+            border-radius: var(--radius-md);
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        /* ─── MODAL ──────────────────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #fff;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 660px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalIn .25s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(.96) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h5 {
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: var(--gray-500);
+            transition: background .15s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-100);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* ─── GRID LAYOUT ────────────────────────────────────────── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* ─── EMPTY STATE ────────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+        }
+
+        .empty-state .es-icon {
+            font-size: 3rem;
+            color: var(--gray-300);
+            margin-bottom: 12px;
+        }
+
+        .empty-state .es-title {
+            font-weight: 700;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .empty-state .es-sub {
+            font-size: .84rem;
+            color: var(--gray-400);
+        }
+
+        /* ─── SPINNER ────────────────────────────────────────────── */
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--indigo-100);
+            border-top-color: var(--indigo-500);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-400);
+            font-size: .875rem;
+        }
+
+        /* ─── WELCOME BANNER ─────────────────────────────────────── */
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--indigo-600) 0%, var(--violet-600) 50%, #7c3aed 100%);
+            border-radius: var(--radius-xl);
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -5%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, .07);
+            border-radius: 50%;
+        }
+
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: 15%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, .05);
+            border-radius: 50%;
+        }
+
+        .wb-label {
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            opacity: .75;
+            margin-bottom: 6px;
+        }
+
+        .wb-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .wb-sub {
+            opacity: .8;
+            font-size: .875rem;
+            margin-bottom: 18px;
+        }
+
+        .wb-btn {
+            background: rgba(255, 255, 255, .2);
+            color: #fff;
+            border: 1.5px solid rgba(255, 255, 255, .3);
+            padding: 9px 20px;
+            border-radius: var(--radius-sm);
+            font-size: .85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: all .18s;
+        }
+
+        .wb-btn:hover {
+            background: rgba(255, 255, 255, .3);
+        }
+
+        .wb-icon {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 5rem;
+            opacity: .12;
+        }
+
+        /* ─── REPORT FORM NOTE ───────────────────────────────────── */
+        .form-note {
+            background: var(--amber-50);
+            border: 1px solid var(--amber-100);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-size: .82rem;
+            color: #92400e;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-top: 16px;
+        }
+
+        .form-note i {
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        /* ─── CITIZEN DASHBOARD DARK POLISH ───────────────────── */
+        [data-theme="dark"] .sidebar {
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0)),
+                linear-gradient(180deg, #0a0a0a 0%, #111111 100%);
+            border-right-color: rgba(212, 168, 67, 0.14);
+            box-shadow: inset -1px 0 0 rgba(212, 168, 67, 0.08);
+        }
+
+        [data-theme="dark"] .sidebar-brand,
+        [data-theme="dark"] .sidebar-footer,
+        [data-theme="dark"] .modal-header,
+        [data-theme="dark"] .modal-footer {
+            border-color: rgba(212, 168, 67, 0.12);
+        }
+
+        [data-theme="dark"] .topbar {
+            background: rgba(12, 12, 12, 0.9);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        [data-theme="dark"] .sidebar-brand-icon,
+        [data-theme="dark"] .avatar,
+        [data-theme="dark"] .profile-avatar {
+            background: linear-gradient(135deg, #f1cb73, #c18a17);
+            box-shadow: 0 10px 28px rgba(193, 138, 23, 0.32);
+            color: #0c0c0c;
+        }
+
+        [data-theme="dark"] .topbar-btn,
+        [data-theme="dark"] .topbar-profile,
+        [data-theme="dark"] .dropdown-menu,
+        [data-theme="dark"] .tab-nav {
+            background: #151515;
+            border-color: rgba(212, 168, 67, 0.14);
+        }
+
+        [data-theme="dark"] .topbar-btn:hover,
+        [data-theme="dark"] .topbar-profile:hover,
+        [data-theme="dark"] .dropdown-item:hover,
+        [data-theme="dark"] .tab-btn.active {
+            background: rgba(212, 168, 67, 0.12);
+            color: #f4d58d;
+        }
+
+        [data-theme="dark"] .card,
+        [data-theme="dark"] .stat-card,
+        [data-theme="dark"] .complaint-item,
+        [data-theme="dark"] .notif-item,
+        [data-theme="dark"] .profile-card,
+        [data-theme="dark"] .modal-box {
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0)),
+                linear-gradient(180deg, #131313 0%, #101010 100%);
+            border-color: rgba(212, 168, 67, 0.14);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="dark"] .card-header,
+        [data-theme="dark"] .modal-header {
+            background:
+                linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.04)),
+                #151515;
+        }
+
+        [data-theme="dark"] .welcome-banner {
+            background:
+                radial-gradient(circle at top right, rgba(255,255,255,0.08), transparent 30%),
+                linear-gradient(135deg, #141414 0%, #1b1407 44%, #b98517 120%);
+            border: 1px solid rgba(212, 168, 67, 0.18);
+            box-shadow: 0 24px 48px rgba(0,0,0,0.34);
+        }
+
+        [data-theme="dark"] .wb-btn {
+            background: rgba(255, 215, 130, 0.16);
+            border-color: rgba(255, 215, 130, 0.24);
+            color: #fff2cf;
+        }
+
+        [data-theme="dark"] .wb-btn:hover {
+            background: rgba(255, 215, 130, 0.24);
+        }
+
+        [data-theme="dark"] .stat-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(135deg, rgba(212,168,67,0.08), transparent 42%);
+        }
+
+        [data-theme="dark"] .complaint-item:hover,
+        [data-theme="dark"] .notif-item:hover,
+        [data-theme="dark"] .photo-upload:hover {
+            border-color: rgba(212, 168, 67, 0.28);
+            box-shadow: 0 18px 34px rgba(0,0,0,0.26);
+        }
+
+        [data-theme="dark"] .photo-upload,
+        [data-theme="dark"] .form-note,
+        [data-theme="dark"] .location-status.loading,
+        [data-theme="dark"] .location-status.success,
+        [data-theme="dark"] .location-status.error {
+            border-color: rgba(212, 168, 67, 0.18);
+            background: rgba(212, 168, 67, 0.08);
+            color: #ead39a;
+        }
+
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background: #141414;
+            border-color: rgba(212, 168, 67, 0.14);
+        }
+
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background: #191919;
+            border-color: rgba(212, 168, 67, 0.42);
+            box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.14);
+        }
+
+        [data-theme="dark"] .profile-card {
+            background:
+                radial-gradient(circle at top, rgba(212,168,67,0.16), transparent 40%),
+                linear-gradient(180deg, #151515 0%, #101010 100%);
+        }
+
+        [data-theme="dark"] .badge-primary,
+        [data-theme="dark"] .tab-btn.active,
+        [data-theme="dark"] .notif-item.unread {
+            border-color: rgba(212, 168, 67, 0.18);
+        }
+
+        [data-theme="dark"] .map-container,
+        [data-theme="dark"] #map-preview {
+            border: 1px solid rgba(212, 168, 67, 0.14);
+            background: #0f0f0f;
+        }
+
+        /* ─── MOBILE RESPONSIVENESS ──────────────────────────────── */
+        @media (max-width: 767px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .topbar-hamburger {
+                display: flex;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .page-content {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-number {
+                font-size: 1.6rem;
+            }
+
+            .welcome-banner {
+                padding: 20px;
+            }
+
+            .wb-title {
+                font-size: 1.3rem;
+            }
+
+            .wb-icon {
+                display: none;
+            }
+
+            .complaint-item {
+                flex-wrap: wrap;
+            }
+
+            .complaint-end {
+                width: 100%;
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .topbar-btn {
+                display: none;
+            }
+
+            .topbar-profile .pname {
+                display: none;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-btn {
+                font-size: .72rem;
+                padding: 7px 10px;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            :root {
+                --sidebar-w: 220px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ─── TINY UTILS ─────────────────────────────────────────── */
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .gap-2 {
+            gap: 8px;
+        }
+
+        .gap-3 {
+            gap: 12px;
+        }
+
+        .mt-1 {
+            margin-top: 4px;
+        }
+
+        .mt-2 {
+            margin-top: 8px;
+        }
+
+        .mt-3 {
+            margin-top: 12px;
+        }
+
+        .ml-auto {
+            margin-left: auto;
+        }
+
+        .text-sm {
+            font-size: .84rem;
+        }
+
+        .text-xs {
+            font-size: .75rem;
+        }
+
+        .text-muted {
+            color: var(--gray-400);
+        }
+
+        .fw-600 {
+            font-weight: 600;
+        }
+
+        .fw-700 {
+            font-weight: 700;
+        }
+
+        .w-100 {
+            width: 100%;
+        }
+    </style>
 </head>
+
 <body>
-    <!-- Modern App Shell Layout -->
-    <div class="d-flex" style="height: 100vh; overflow: hidden; background-color: var(--bg-main);">
-        
-        <!-- Sidebar -->
-        <nav id="sidebarMenu" class="sidebar bg-card border-end d-flex flex-column" style="width: 250px; z-index: 1040; flex-shrink: 0;">
-            <div class="d-md-none text-end p-2 pb-0">
-                <button class="btn border-0 text-muted" onclick="document.getElementById('sidebarMenu').classList.remove('show');"><i class="bi bi-x-lg fs-4"></i></button>
+
+    <div class="app-shell">
+
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <!-- ───── SIDEBAR ───────────────────────────────────────── -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon"><i class="bi bi-hexagon-fill"></i></div>
+                <div class="sidebar-brand-text">
+                    <div class="name">Anand Civic</div>
+                    <div class="tagline">Smart City Platform</div>
+                </div>
             </div>
-            <div class="p-4 border-bottom text-center d-none d-md-block">
-                <a href="../home/index.html" class="text-decoration-none">
-                    <i class="bi bi-hexagon-fill text-primary" style="font-size: 2.2rem;"></i>
-                    <h5 class="fw-bold mt-2 text-dark mb-0 tracking-tight">Anand Civic</h5>
-                </a>
-            </div>
-            <div class="flex-grow-1 overflow-auto py-3 px-2">
-                <ul class="nav flex-column gap-1">
+
+            <div class="sidebar-nav">
+                <div class="sidebar-section-label">Main Menu</div>
+                <ul style="list-style:none; display:flex; flex-direction:column; gap:2px;">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('home')">
-                            <i class="bi bi-house"></i> Home
+                        <a class="nav-link active" onclick="showSection('home',this)">
+                            <i class="bi bi-house-door-fill"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('report')">
-                            <i class="bi bi-plus-circle"></i> Report Issue
+                        <a class="nav-link" onclick="showSection('report',this)">
+                            <i class="bi bi-plus-circle-fill"></i> Report Issue
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('my-complaints')">
+                        <a class="nav-link" onclick="showSection('complaints',this)">
                             <i class="bi bi-list-task"></i> My Complaints
                         </a>
                     </li>
+                </ul>
+
+                <div class="sidebar-section-label">Explore</div>
+                <ul style="list-style:none; display:flex; flex-direction:column; gap:2px;">
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('map')">
-                            <i class="bi bi-map"></i> Map View
+                        <a class="nav-link" onclick="showSection('map',this)">
+                            <i class="bi bi-map-fill"></i> Map View
                         </a>
                     </li>
-                    <li class="nav-item position-relative">
-                        <a class="nav-link" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('notifications')">
-                            <i class="bi bi-bell"></i> Notifications
-                            <span class="notification-badge shadow-sm" id="notification-count" style="display: none; position: absolute; right: 15px; top: 12px; background: #ff3b30; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; font-weight: bold;">0</span>
+                    <li class="nav-item">
+                        <a class="nav-link" id="notif-nav" onclick="showSection('notifications',this)">
+                            <i class="bi bi-bell-fill"></i> Notifications
+                            <span class="nav-badge" id="notification-count" style="display:none">0</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-label">Account</div>
+                <ul style="list-style:none; display:flex; flex-direction:column; gap:2px;">
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('profile',this)">
+                            <i class="bi bi-person-fill"></i> My Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="logout()" style="color:var(--rose-500)">
+                            <i class="bi bi-box-arrow-right"></i> Logout
                         </a>
                     </li>
                 </ul>
             </div>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="avatar" id="sidebar-avatar">U</div>
+                    <div class="sidebar-user-info">
+                        <div class="u-name" id="sidebar-uname">Loading...</div>
+                        <div class="u-role">Citizen</div>
+                    </div>
+                </div>
+            </div>
         </nav>
 
-        <!-- Main Workspace Area -->
-        <main class="flex-grow-1 d-flex flex-column" style="overflow: hidden; width: 0;">
-            <!-- Top Header Profile Bar -->
-            <header class="bg-card w-100 py-3 px-4 border-bottom d-flex justify-content-between align-items-center shadow-sm" style="z-index: 1030;">
-                <div class="d-flex align-items-center">
-                    <button class="btn btn-light d-md-none border-0 bg-transparent me-2" onclick="document.getElementById('sidebarMenu').classList.toggle('show');">
-                        <i class="bi bi-list" style="font-size: 1.8rem;"></i>
+        <!-- ───── MAIN ──────────────────────────────────────────── -->
+        <main class="main">
+
+            <!-- Top Bar -->
+            <header class="topbar">
+                <button class="topbar-hamburger" onclick="openSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+
+                <div class="topbar-right">
+                    <button class="theme-toggle" type="button" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
+                        <i class="bi bi-moon-stars-fill"></i>
                     </button>
-                    <h4 class="mb-0 fw-bold d-none d-md-block text-dark tracking-tight">Citizen Dashboard</h4>
-                </div>
-                <div class="header-profile d-flex align-items-center gap-3 ms-auto">
-                    <div class="dropdown">
-                        <a href="#" class="d-flex align-items-center text-dark text-decoration-none px-3 py-2 bg-main rounded-pill transition-smooth" data-bs-toggle="dropdown" style="border: 1px solid var(--border-light);">
-                            <i class="bi bi-person-circle fs-5 me-2 text-primary"></i>
-                            <span id="user-name" class="fw-bold small me-1">User</span>
-                            <i class="bi bi-chevron-down small text-muted ms-1" style="font-size: 0.75rem;"></i>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border border-light rounded-4 mt-2">
-                            <li><a class="dropdown-item py-2 fw-medium" href="#" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('profile')"><i class="bi bi-person me-2 text-muted"></i> My Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2 fw-medium text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2 text-danger"></i> Logout</a></li>
-                        </ul>
+                    <button class="topbar-btn"
+                        onclick="showSection('notifications', document.querySelector('.nav-link:nth-of-type(5)'))">
+                        <i class="bi bi-bell"></i>
+                        <span class="dot" id="notif-dot" style="display:none"></span>
+                    </button>
+
+                    <div class="dropdown" id="profileDropdown">
+                        <div class="topbar-profile" onclick="toggleDropdown('profileDropdown')">
+                            <div class="avatar sm" id="topbar-avatar">U</div>
+                            <span class="pname" id="topbar-uname">User</span>
+                            <i class="bi bi-chevron-down pchev"></i>
+                        </div>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-item" onclick="showSection('profile',null)"><i
+                                    class="bi bi-person"></i> My Profile</div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i>
+                                Logout</div>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <!-- Scrollable Page Content -->
-            <div class="flex-grow-1 overflow-auto p-3 p-md-4 position-relative">
-                <!-- Alert Container -->
-                <div id="alert-container" class="mt-3"></div>
+            <!-- Page Content -->
+            <div class="page-content">
+                <div class="alert-container" id="alert-container"></div>
 
-                <!-- Home Section -->
-                <section id="section-home" class="dashboard-section">
-                    <h2 class="mt-4">Welcome, <span id="user-greeting">Citizen</span>!</h2>
-                    <p class="text-muted">Report and track civic issues in Anand city</p>
-                    
-                    <!-- Stats Cards -->
-                    <div class="row mt-4">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <i class="bi bi-file-earmark-text stat-icon text-primary"></i>
-                                <div class="stat-number" id="stat-total">0</div>
-                                <div class="stat-label">Total Complaints</div>
-                            </div>
+                <!-- ─── HOME ──────────────────────────────────────── -->
+                <section class="section active" id="section-home">
+
+                    <div class="welcome-banner">
+                        <div class="wb-label">Good day</div>
+                        <div class="wb-title">Welcome back, <span id="user-greeting">Citizen</span>!</div>
+                        <div class="wb-sub">Report civic issues, track progress and help improve Anand city.</div>
+                        <button class="wb-btn" onclick="showSection('report',null)"><i class="bi bi-plus-circle"></i>
+                            Report New Issue</button>
+                        <i class="bi bi-buildings wb-icon"></i>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card total">
+                            <div class="stat-icon-wrap"><i class="bi bi-file-earmark-text-fill"></i></div>
+                            <div class="stat-number" id="stat-total">0</div>
+                            <div class="stat-label">Total Complaints</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <i class="bi bi-hourglass-split stat-icon text-warning"></i>
-                                <div class="stat-number" id="stat-pending">0</div>
-                                <div class="stat-label">Pending</div>
-                            </div>
+                        <div class="stat-card pending">
+                            <div class="stat-icon-wrap"><i class="bi bi-hourglass-split"></i></div>
+                            <div class="stat-number" id="stat-pending">0</div>
+                            <div class="stat-label">Pending</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <i class="bi bi-arrow-repeat stat-icon text-info"></i>
-                                <div class="stat-number" id="stat-progress">0</div>
-                                <div class="stat-label">In Progress</div>
-                            </div>
+                        <div class="stat-card progress">
+                            <div class="stat-icon-wrap"><i class="bi bi-arrow-repeat"></i></div>
+                            <div class="stat-number" id="stat-progress">0</div>
+                            <div class="stat-label">In Progress</div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <i class="bi bi-check-circle stat-icon text-success"></i>
-                                <div class="stat-number" id="stat-resolved">0</div>
-                                <div class="stat-label">Resolved</div>
-                            </div>
+                        <div class="stat-card resolved">
+                            <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill"></i></div>
+                            <div class="stat-number" id="stat-resolved">0</div>
+                            <div class="stat-label">Resolved</div>
                         </div>
                     </div>
 
-                    <!-- Recent Complaints -->
-                    <div class="card mt-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Recent Complaints</h5>
-                            <button class="btn btn-sm btn-primary" onclick="document.getElementById('sidebarMenu').classList.remove('show'); showSection('report')">
-                                <i class="bi bi-plus"></i> New Complaint
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-clock-history"
+                                    style="color:var(--indigo-400);margin-right:6px"></i>Recent Complaints</h5>
+                            <button class="btn btn-primary btn-sm" onclick="showSection('report',null)">
+                                <i class="bi bi-plus"></i> New
                             </button>
                         </div>
                         <div class="card-body">
                             <div id="recent-complaints-list">
-                                <div class="text-center py-4">
-                                    <div class="spinner"></div>
-                                    <p class="text-muted">Loading complaints...</p>
+                                <div class="loading-state">
+                                    <div class="spinner"></div>Loading complaints…
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Report Issue Section -->
-                <section id="section-report" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Report New Issue</h2>
-                    <p class="text-muted">Submit a civic issue with photo and location</p>
+                <!-- ─── REPORT ISSUE ───────────────────────────────── -->
+                <section class="section" id="section-report">
+                    <div class="page-heading">
+                        <h1>Report New Issue</h1>
+                        <p>Submit a civic issue with photo and location details</p>
+                    </div>
 
                     <div class="card">
                         <div class="card-body">
-                            <form id="report-form" enctype="multipart/form-data">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label for="complaint-title" class="form-label">Title</label>
-                                            <input type="text" class="form-control" id="complaint-title" required placeholder="Brief title of the issue">
+                            <form id="report-form" onsubmit="submitComplaint(event)">
+                                <div class="grid-2">
+                                    <!-- Left -->
+                                    <div>
+                                        <div class="form-group">
+                                            <label class="form-label">Issue Title <span
+                                                    style="color:var(--rose-500)">*</span></label>
+                                            <input type="text" class="form-control" id="complaint-title"
+                                                placeholder="Brief title of the issue" required>
                                         </div>
-                                        
-                                        <div class="mb-3">
-                                            <label for="department-select" class="form-label">Department</label>
-                                            <select class="form-select" id="department-select" required>
-                                                <option value="">Select Department</option>
+
+                                        <div class="form-group">
+                                            <label class="form-label">Department <span
+                                                    style="color:var(--rose-500)">*</span></label>
+                                            <select class="form-select" id="department-select" required
+                                                onchange="validateDescription()">
+                                                <option value="">Select Department…</option>
+                                                <option value="1">Roads & Infrastructure</option>
+                                                <option value="2">Water Supply</option>
+                                                <option value="3">Electricity</option>
+                                                <option value="4">Sanitation</option>
+                                                <option value="5">Street Lighting</option>
+                                                <option value="6">Parks & Gardens</option>
                                             </select>
-                                            <div class="form-text">Select the appropriate department for your issue</div>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <label for="complaint-description" class="form-label">Description</label>
-                                            <textarea class="form-control" id="complaint-description" rows="4" required placeholder="Describe the issue in detail..."></textarea>
-                                            <div id="keyword-warning" class="form-text text-warning" style="display: none;"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Photo</label>
-                                            <div class="border rounded p-4 text-center bg-light">
-                                                <input type="file" class="form-control" id="complaint-image" accept="image/*" required>
-                                                <img id="image-preview" class="img-fluid mt-3 rounded" style="display: none; max-height: 200px;">
+                                            <div class="form-hint">Select the appropriate department for your issue
                                             </div>
                                         </div>
-                                        
-                                        <div class="mb-3">
+
+                                        <div class="form-group">
+                                            <label class="form-label">Description <span
+                                                    style="color:var(--rose-500)">*</span></label>
+                                            <textarea class="form-control" id="complaint-description"
+                                                placeholder="Describe the issue in detail…" required
+                                                oninput="validateDescription()"></textarea>
+                                            <div class="form-hint warning" id="keyword-warning" style="display:none">
+                                                <i class="bi bi-exclamation-triangle"></i> Description may not match
+                                                selected department.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right -->
+                                    <div>
+                                        <div class="form-group">
+                                            <label class="form-label">Photo <span
+                                                    style="color:var(--rose-500)">*</span></label>
+                                            <div class="photo-upload"
+                                                onclick="document.getElementById('complaint-image').click()">
+                                                <input type="file" id="complaint-image" accept="image/*" required
+                                                    onchange="previewImage(this)">
+                                                <div class="ph-icon"><i class="bi bi-camera-fill"></i></div>
+                                                <div class="ph-label">Click to upload photo</div>
+                                                <div class="ph-text">JPG, PNG, WEBP — max 5 MB</div>
+                                            </div>
+                                            <div id="image-preview-wrap">
+                                                <img id="image-preview" alt="Preview">
+                                            </div>
+                                            <button type="button" class="btn btn-outline" id="analyze-btn" style="margin-top:10px;display:none" onclick="analyzeImage()">
+                                                <i class="bi bi-stars"></i> Analyze with AI
+                                            </button>
+                                            <div id="analysis-result" style="display:none;margin-top:10px;padding:12px;border-radius:8px;"></div>
+                                        </div>
+
+                                        <div class="form-group">
                                             <label class="form-label">Location</label>
-                                            <div class="input-group mb-2">
-                                                <input type="text" class="form-control" id="location-address" placeholder="Address (optional)">
-                                                <button class="btn btn-outline-secondary" type="button" onclick="getLocation()">
-                                                    <i class="bi bi-geo-alt"></i> Get GPS
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="location-address"
+                                                    placeholder="Address (optional)">
+                                                <button type="button" class="btn btn-outline" onclick="getLocation()">
+                                                    <i class="bi bi-geo-alt-fill"></i> GPS
                                                 </button>
                                             </div>
                                             <input type="hidden" id="latitude">
                                             <input type="hidden" id="longitude">
-                                            <div id="location-status" class="form-text"></div>
-                                            <div id="map-preview" style="height: 200px; border-radius: 8px;"></div>
+                                            <div id="location-status"></div>
+                                            <div id="map-preview"></div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="alert alert-warning">
-                                    <i class="bi bi-info-circle"></i> 
-                                    <strong>Note:</strong> Issues can only be submitted within Anand city boundary. GPS location is required.
+
+                                <div class="form-note">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                    <span>Issues can only be submitted within <strong>Anand city boundary</strong>. GPS
+                                        location is required to proceed.</span>
                                 </div>
-                                
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-send"></i> Submit Complaint
-                                </button>
+
+                                <div style="margin-top:20px">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-send-fill"></i> Submit Complaint
+                                    </button>
+                                    <button type="reset" class="btn btn-outline" style="margin-left:10px"
+                                        onclick="resetForm()">
+                                        <i class="bi bi-x"></i> Reset
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
                 </section>
 
-                <!-- My Complaints Section -->
-                <section id="section-my-complaints" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">My Complaints</h2>
-                    
+                <!-- ─── MY COMPLAINTS ─────────────────────────────── -->
+                <section class="section" id="section-complaints">
+                    <div class="page-heading">
+                        <h1>My Complaints</h1>
+                        <p>Track the status of all your reported issues</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="tab-nav" id="complaint-tabs">
+                                <button class="tab-btn active" onclick="filterComplaints('all', this)">All</button>
+                                <button class="tab-btn" onclick="filterComplaints('pending', this)">Pending</button>
+                                <button class="tab-btn" onclick="filterComplaints('progress', this)">In
+                                    Progress</button>
+                                <button class="tab-btn" onclick="filterComplaints('resolved', this)">Resolved</button>
+                            </div>
+                            <div id="complaints-list-container">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>Loading…
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ─── MAP ───────────────────────────────────────── -->
+                <section class="section" id="section-map">
+                    <div class="page-heading">
+                        <h1>Map View</h1>
+                        <p>View all civic issues across Anand city</p>
+                    </div>
+
                     <div class="card">
                         <div class="card-header">
-                            <ul class="nav nav-tabs card-header-tabs" id="complaint-tabs" role="tablist">
-                                <li class="nav-item">
-                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#all-complaints">All</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pending-complaints">Pending</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#progress-complaints">In Progress</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#resolved-complaints">Resolved</button>
-                                </li>
-                            </ul>
+                            <h5><i class="bi bi-map-fill" style="color:var(--indigo-400);margin-right:6px"></i>Issue
+                                Heatmap</h5>
+                            <div class="flex items-center gap-2" style="font-size:.75rem; gap:12px">
+                                <span><span
+                                        style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--rose-400);margin-right:4px"></span>Pending</span>
+                                <span><span
+                                        style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--sky-400);margin-right:4px"></span>In
+                                    Progress</span>
+                                <span><span
+                                        style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--emerald-400);margin-right:4px"></span>Resolved</span>
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding:0">
+                            <div class="map-container" id="citizen-map"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ─── NOTIFICATIONS ─────────────────────────────── -->
+                <section class="section" id="section-notifications">
+                    <div class="page-heading">
+                        <h1>Notifications</h1>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Your Notifications</h5>
+                            <button class="btn btn-outline btn-sm" onclick="markAllRead()">
+                                <i class="bi bi-check-all"></i> Mark all read
+                            </button>
                         </div>
                         <div class="card-body">
-                            <div class="tab-content" id="complaint-tabs-content">
-                                <div class="tab-pane fade show active" id="all-complaints">
-                                    <div id="all-complaints-list"></div>
-                                </div>
-                                <div class="tab-pane fade" id="pending-complaints">
-                                    <div id="pending-complaints-list"></div>
-                                </div>
-                                <div class="tab-pane fade" id="progress-complaints">
-                                    <div id="progress-complaints-list"></div>
-                                </div>
-                                <div class="tab-pane fade" id="resolved-complaints">
-                                    <div id="resolved-complaints-list"></div>
+                            <div id="notifications-list">
+                                <div class="empty-state">
+                                    <div class="es-icon"><i class="bi bi-bell-slash"></i></div>
+                                    <div class="es-title">No Notifications</div>
+                                    <div class="es-sub">You're all caught up!</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Map Section -->
-                <section id="section-map" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Map View</h2>
-                    <p class="text-muted">View all civic issues on the map</p>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="citizen-map" style="height: 500px;"></div>
-                        </div>
+                <!-- ─── PROFILE ───────────────────────────────────── -->
+                <section class="section" id="section-profile">
+                    <div class="page-heading">
+                        <h1>My Profile</h1>
                     </div>
-                </section>
-
-                <!-- Notifications Section -->
-                <section id="section-notifications" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Notifications</h2>
-                    
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Your Notifications</h5>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="markAllNotificationsRead()">Mark all as read</button>
+                    <div class="grid-2" style="align-items:start">
+                        <div class="profile-card">
+                            <div class="profile-avatar" id="profile-avatar-icon">U</div>
+                            <div class="profile-name" id="profile-name">Loading…</div>
+                            <div class="profile-email" id="profile-email">…</div>
+                            <div style="margin-top:12px"><span class="badge badge-primary"><i
+                                        class="bi bi-shield-check"></i> Verified Citizen</span></div>
                         </div>
-                        <div class="card-body">
-                            <div id="notifications-list" class="list-group">
-                                <p class="text-muted text-center py-4">No notifications</p>
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Account Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="profile-table">
+                                    <tr>
+                                        <td>Full Name</td>
+                                        <td id="pt-name">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Email</td>
+                                        <td id="pt-email">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Phone</td>
+                                        <td id="pt-phone">—</td>
+                                    </tr>
+                                    <tr>
+                                        <td>City</td>
+                                        <td>Anand, Gujarat</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Role</td>
+                                        <td><span class="badge badge-primary">Citizen</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Joined</td>
+                                        <td id="pt-joined">—</td>
+                                    </tr>
+                                </table>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Profile Section -->
-                <section id="section-profile" class="dashboard-section" style="display: none;">
-                    <h2 class="mt-4">Profile</h2>
-                    
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 text-center">
-                                    <i class="bi bi-person-circle" style="font-size: 5rem; color: var(--primary-color);"></i>
-                                </div>
-                                <div class="col-md-8">
-                                    <table class="table table-borderless">
-                                        <tr><td><strong>Name:</strong></td><td id="profile-name"></td></tr>
-                                        <tr><td><strong>Email:</strong></td><td id="profile-email"></td></tr>
-                                        <tr><td><strong>Phone:</strong></td><td id="profile-phone"></td></tr>
-                                        <tr><td><strong>Role:</strong></td><td><span class="badge bg-primary">Citizen</span></td></tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
+            </div><!-- end page-content -->
         </main>
     </div>
 
-    <!-- Complaint Detail Modal -->
-    <div class="modal fade" id="complaintDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Complaint Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- ─── COMPLAINT DETAIL MODAL ─────────────────────────────── -->
+    <div class="modal-overlay" id="modal-detail">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h5>Complaint Details</h5>
+                <button class="modal-close" onclick="closeModal('modal-detail')"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" id="modal-detail-body">
+                <div class="loading-state">
+                    <div class="spinner"></div>Loading…
                 </div>
-                <div class="modal-body" id="complaint-detail-content">
-                    <!-- Content loaded dynamically -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-detail')">Close</button>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="../../public/js/main.js"></script>
+    <script src="../../public/js/main.js?v=999"></script>
     <script>
-        let citizenMap = null;
-        
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', async () => {
-            if (!checkAuth()) {
-                window.location.href = '../auth/login.html';
-                return;
-            }
-            
-            currentUser = JSON.parse(localStorage.getItem('user'));
-            
-            // Update UI
-            document.getElementById('user-name').textContent = currentUser.name;
-            document.getElementById('user-greeting').textContent = currentUser.name.split(' ')[0];
-            document.getElementById('profile-name').textContent = currentUser.name;
-            document.getElementById('profile-email').textContent = currentUser.email;
-            document.getElementById('profile-phone').textContent = currentUser.phone;
-            
-            // Load initial data
-            await loadDashboardData();
-            
-            // Load departments for report form
-            loadDepartments();
-            
-            // Setup image preview
-            document.getElementById('complaint-image').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        document.getElementById('image-preview').src = e.target.result;
-                        document.getElementById('image-preview').style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Setup keyword validation
-            document.getElementById('complaint-description').addEventListener('input', validateDescription);
-            document.getElementById('department-select').addEventListener('change', validateDescription);
-            
-            // Setup report form submission
-            document.getElementById('report-form').addEventListener('submit', submitComplaint);
+        window.addEventListener('error', function (e) {
+            document.body.innerHTML = `<div style='padding:50px;background:red;color:white;font-size:24px;font-weight:bold;z-index:999999;position:fixed;top:0;left:0;width:100%;height:100%;'>CRITICAL JS ERROR: ${e.message}<br>Line: ${e.lineno}<br>File: ${e.filename}</div>`;
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            document.body.innerHTML = `<div style='padding:50px;background:purple;color:white;font-size:24px;font-weight:bold;z-index:999999;position:fixed;top:0;left:0;width:100%;height:100%;'>NETWORK/PROMISE ERROR: ${e.reason}</div>`;
         });
 
-        async function loadDashboardData() {
-            // Load stats
-            const stats = await getStats();
-            document.getElementById('stat-total').textContent = stats.total || 0;
-            document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
-            document.getElementById('stat-progress').textContent = stats.by_status?.in_progress || 0;
-            document.getElementById('stat-resolved').textContent = stats.by_status?.resolved || 0;
-            
-            // Load recent complaints
-            const complaints = await getComplaints();
-            renderComplaintsList(complaints, 'recent-complaints-list');
-            
-            // Load all complaints by category
-            renderComplaintsList(complaints.filter(c => c.status === 'pending'), 'pending-complaints-list');
-            renderComplaintsList(complaints.filter(c => ['assigned', 'in_progress'].includes(c.status)), 'progress-complaints-list');
-            renderComplaintsList(complaints.filter(c => ['resolved', 'closed'].includes(c.status)), 'resolved-complaints-list');
-            
-            // Load notifications
-            loadNotifications();
+        /* ─── STATE ──────────────────────────────────────────────────── */
+        let currentUser = null;
+        let mapInstance = null;
+        let citizenComplaints = [];
+        let reportMapInstance = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) { window.location.href = '../auth/login.html'; return; }
+
+            currentUser = JSON.parse(localStorage.getItem('user'));
+
+            initUI();
+            await loadLiveDashboard();
+            await loadDynamicDepartments();
+        });
+
+        /* ─── UI INITIALIZATION ──────────────────────────────────────── */
+        function initUI() {
+            try {
+                if (currentUser) {
+                    const name = currentUser.name || 'Citizen';
+                    const email = currentUser.email || '';
+                    const phone = currentUser.phone || 'Phone not provided';
+
+                    let initials = 'C';
+                    if (name) {
+                        initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    }
+
+                    if (document.getElementById('sidebar-avatar')) document.getElementById('sidebar-avatar').textContent = initials;
+                    if (document.getElementById('topbar-avatar')) document.getElementById('topbar-avatar').textContent = initials;
+                    if (document.getElementById('profile-avatar-icon')) document.getElementById('profile-avatar-icon').textContent = initials;
+
+                    if (document.getElementById('sidebar-uname')) document.getElementById('sidebar-uname').textContent = name;
+                    if (document.getElementById('topbar-uname')) document.getElementById('topbar-uname').textContent = name.split(' ')[0];
+                    if (document.getElementById('user-greeting')) document.getElementById('user-greeting').textContent = name.split(' ')[0];
+                    if (document.getElementById('profile-name')) document.getElementById('profile-name').textContent = name;
+                    if (document.getElementById('profile-email')) document.getElementById('profile-email').textContent = currentUser.email;
+                    if (document.getElementById('pt-name')) document.getElementById('pt-name').textContent = currentUser.name;
+                    if (document.getElementById('pt-email')) document.getElementById('pt-email').textContent = currentUser.email;
+                    if (document.getElementById('pt-phone')) document.getElementById('pt-phone').textContent = currentUser.phone || 'Phone not provided';
+
+                    let df = 'New Citizen';
+                    if (currentUser.created_at) {
+                        let d = new Date(currentUser.created_at);
+                        df = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                    if (document.getElementById('pt-joined')) document.getElementById('pt-joined').textContent = df;
+                }
+
+                const tp = document.querySelector('.topbar-profile');
+                if (tp) {
+                    tp.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const dd = document.getElementById('profileDropdown');
+                        if (dd) dd.classList.toggle('open');
+                    });
+                }
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.topbar-profile')) {
+                        const dd = document.getElementById('profileDropdown');
+                        if (dd) dd.classList.remove('open');
+                    }
+                });
+
+                // Initialize Map
+                setTimeout(() => {
+                    initMap();
+                }, 300);
+            } catch (e) { console.error("UI init error:", e); }
         }
 
-        async function loadDepartments() {
-            const departments = await getDepartments();
-            const select = document.getElementById('department-select');
-            
-            departments.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept.id;
-                option.textContent = dept.name;
-                select.appendChild(option);
+        async function loadLiveDashboard() {
+            try {
+                const stats = await getStats();
+                if (document.getElementById('stat-total')) document.getElementById('stat-total').textContent = stats.total || 0;
+                if (document.getElementById('stat-pending')) document.getElementById('stat-pending').textContent = stats.by_status?.pending || 0;
+                if (document.getElementById('stat-progress')) document.getElementById('stat-progress').textContent = (stats.by_status?.assigned || 0) + (stats.by_status?.in_progress || 0);
+                if (document.getElementById('stat-resolved')) document.getElementById('stat-resolved').textContent = (stats.by_status?.resolved || 0) + (stats.by_status?.closed || 0);
+
+                citizenComplaints = await getComplaints();
+                if (!Array.isArray(citizenComplaints)) citizenComplaints = [];
+
+                renderCitizenList(citizenComplaints.slice(0, 4), 'recent-complaints-list');
+                renderCitizenList(citizenComplaints, 'complaints-list-container');
+
+                // Load notifications
+                await loadCitizenNotifications();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadDynamicDepartments() {
+            try {
+                const dpts = await getDepartments();
+                const sel = document.getElementById('department-select');
+                if (sel) {
+                    sel.innerHTML = '<option value="">Select Department…</option>';
+                    dpts.forEach(d => {
+                        let opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function renderCitizenList(data, containerId) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+
+            if (!data || data.length === 0) {
+                el.innerHTML = `<div class="empty-state"><div class="es-icon"><i class="bi bi-inbox"></i></div><div class="es-title">No complaints found</div><div class="es-sub">Nothing to show here yet.</div></div>`;
+                return;
+            }
+
+            el.innerHTML = data.map(c => {
+                let imgHtml = `<div class="complaint-thumb"><i class="bi bi-image"></i></div>`;
+                if (c.before_image) {
+                    imgHtml = `<div class="complaint-thumb"><img src="${API_BASE}/uploads/before/${c.before_image}"></div>`;
+                }
+
+                let badgeClass = (c.status === 'in_progress' || c.status === 'assigned') ? 'progress' : c.status;
+                let pBadge = c.priority || 'medium';
+                let dString = c.created_at ? new Date(c.created_at).toLocaleDateString() : 'Recent';
+
+                return `
+            <div class="complaint-item priority-${pBadge}" onclick="openComplaintDetail(${c.id})">
+                ${imgHtml}
+                <div class="complaint-body">
+                    <div class="complaint-title">${c.title}</div>
+                    <div class="complaint-desc">${c.description}</div>
+                    <div class="complaint-meta">
+                        <span><i class="bi bi-calendar3"></i> ${dString}</span>
+                    </div>
+                </div>
+                <div class="complaint-end">
+                    <span class="badge badge-${badgeClass.replace('_', '-')}">${c.status.replace('_', ' ')}</span>
+                    <span class="badge badge-${pBadge}">${pBadge}</span>
+                </div>
+            </div>`;
+            }).join('');
+        }
+
+        function filterComplaints(filter, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            let filtered = citizenComplaints;
+            if (filter === 'pending') filtered = citizenComplaints.filter(c => c.status === 'pending');
+            if (filter === 'progress') filtered = citizenComplaints.filter(c => ['assigned', 'in_progress', 'progress'].includes(c.status));
+            if (filter === 'resolved') filtered = citizenComplaints.filter(c => ['resolved', 'closed'].includes(c.status));
+
+            renderCitizenList(filtered, 'complaints-list-container');
+        }
+        function toggleDropdown(id) {
+            document.querySelectorAll('.dropdown').forEach(d => {
+                if (d.id !== id) d.classList.remove('active');
+            });
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('active');
+        }
+        
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown') && !e.target.closest('.topbar-profile') && !e.target.closest('.notif-icon')) {
+                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('active'));
+            }
+        });
+
+        function logout() {
+            if(window.doLogout) doLogout();
+            else { localStorage.clear(); window.location.href = '../auth/login.html'; }
+        }
+
+        const PAGE_TITLES = {
+            home: 'Dashboard', report: 'Report Issue', complaints: 'My Complaints',
+            map: 'Map View', notifications: 'Notifications', profile: 'My Profile'
+        };
+
+        function showSection(name, triggerEl) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const sec = document.getElementById('section-' + name);
+            if (sec) sec.classList.add('active');
+
+            if (document.getElementById('topbar-title')) document.getElementById('topbar-title').textContent = PAGE_TITLES[name] || name;
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            if (triggerEl) triggerEl.classList.add('active');
+
+            closeSidebar();
+
+            if (name === 'map') {
+                if (mapInstance) {
+                    setTimeout(() => mapInstance.invalidateSize(), 150);
+                } else {
+                    initMap();
+                }
+            }
+
+            // Load notifications when tab opened
+            if (name === 'notifications') {
+                loadCitizenNotifications();
+            }
+        }
+
+        function initMap() {
+            const mapEl = document.getElementById('citizen-map');
+            if (!mapEl) return;
+            if (mapInstance) { mapInstance.invalidateSize(); return; }
+
+            mapInstance = L.map('citizen-map').setView([22.555, 72.950], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInstance);
+            if(window.loadMapPOIs) loadMapPOIs(mapInstance);
+
+            const colors = { pending: '#f43f5e', assigned: '#0ea5e9', in_progress: '#0ea5e9', resolved: '#10b981', closed: '#10b981' };
+            citizenComplaints.forEach(c => {
+                const lat = parseFloat(c.latitude);
+                const lng = parseFloat(c.longitude);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    L.circleMarker([lat, lng], { radius: 10, fillColor: colors[c.status] || '#6b7280', color: '#fff', weight: 2, fillOpacity: 0.8 }).addTo(mapInstance).bindPopup(`<strong>${c.title}</strong>`);
+                }
             });
         }
 
-        async function validateDescription() {
-            const description = document.getElementById('complaint-description').value;
-            const departmentId = document.getElementById('department-select').value;
-            const warning = document.getElementById('keyword-warning');
-            
-            if (!description || !departmentId) {
-                warning.style.display = 'none';
+        function openComplaintDetail(id) {
+            const c = citizenComplaints.find(x => x.id === id);
+            if (!c) return;
+
+            let pBadge = c.priority || 'medium';
+            let bClass = (c.status === 'in_progress' || c.status === 'assigned') ? 'progress' : c.status;
+
+            const latMap = parseFloat(c.latitude).toFixed(4);
+            const lngMap = parseFloat(c.longitude).toFixed(4);
+
+            // Close/Reopen buttons — only when status is 'resolved'
+            let feedbackHTML = '';
+            if (c.status === 'resolved') {
+                feedbackHTML = `
+                <div style="margin-top:20px;padding:16px;background:var(--emerald-50,#ecfdf5);border-radius:var(--radius-sm);border:1px solid var(--emerald-200,#a7f3d0)">
+                    <div style="font-weight:700;margin-bottom:8px;color:var(--gray-800)">📋 This issue has been resolved by the department</div>
+                    <div style="margin-bottom:12px">
+                        <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:4px">Your Feedback (optional)</label>
+                        <textarea id="citizen-feedback-text" rows="2" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem" placeholder="Share your experience..."></textarea>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <button onclick="citizenClose(${c.id})" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--emerald-600,#059669);color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem">
+                            <i class="bi bi-check-circle me-1"></i> Close Issue (Satisfied)
+                        </button>
+                        <button onclick="citizenReopen(${c.id})" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--rose-500,#f43f5e);color:#fff;font-weight:700;cursor:pointer;font-size:0.9rem">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reopen Issue (Not Done)
+                        </button>
+                    </div>
+                </div>`;
+            } else if (c.status === 'closed') {
+                feedbackHTML = `
+                <div style="margin-top:20px;padding:14px;background:var(--gray-100,#f3f4f6);border-radius:var(--radius-sm);text-align:center">
+                    <i class="bi bi-lock-fill" style="font-size:1.5rem;color:var(--gray-400)"></i>
+                    <div style="font-weight:600;margin-top:4px;color:var(--gray-600)">This complaint is permanently closed.</div>
+                </div>`;
+            } else if (c.status === 'rejected') {
+                feedbackHTML = `
+                <div style="margin-top:20px;padding:14px;background:#fef2f2;border-radius:var(--radius-sm);border:1px solid #fecaca">
+                    <i class="bi bi-x-octagon-fill" style="color:#dc2626"></i>
+                    <strong style="color:#991b1b"> This complaint was rejected by the department.</strong>
+                    ${c.remarks ? `<div style="margin-top:6px;color:#7f1d1d">Reason: ${c.remarks}</div>` : ''}
+                </div>`;
+            }
+
+            // Deadline info
+            let deadlineHTML = '';
+            if (c.deadline) {
+                const dl = new Date(c.deadline);
+                const daysLeft = Math.ceil((dl - new Date()) / (1000*60*60*24));
+                const isOverdue = daysLeft < 0 && !['resolved','closed','rejected'].includes(c.status);
+                deadlineHTML = `<div style="margin-top:10px;font-size:0.85rem;${isOverdue ? 'color:#dc2626;font-weight:700' : 'color:var(--gray-500)'}">
+                    <i class="bi bi-alarm me-1"></i>Deadline: ${dl.toLocaleDateString()} ${isOverdue ? '(' + Math.abs(daysLeft) + ' days overdue!)' : '(' + daysLeft + ' days left)'}
+                </div>`;
+            }
+
+            document.getElementById('modal-detail-body').innerHTML = `
+            <div style="margin-bottom:20px">
+                <div class="flex items-center gap-2" style="margin-bottom:8px;gap:10px">
+                    <h4 style="font-weight:700;color:var(--gray-900);flex:1">${c.title}</h4>
+                    <span class="badge badge-${bClass.replace('_', '-')}">${c.status.replace('_', ' ')}</span>
+                    <span class="badge badge-${pBadge}">${pBadge}</span>
+                </div>
+                <div style="color:var(--gray-500);font-size:.875rem;line-height:1.7">${c.description}</div>
+            </div>
+            <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:14px;display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                <i class="bi bi-geo-alt-fill" style="color:var(--rose-500)"></i>
+                <div>
+                    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-400)">Location</div>
+                    <div style="font-weight:500;font-size:.875rem">Lat: ${latMap}, Lng: ${lngMap}</div>
+                </div>
+            </div>
+            ${(c.before_image || c.after_image) ? `<div style="display:flex;gap:10px;margin-bottom:20px;overflow-x:auto;">
+                ${c.before_image ? `<div style="flex:1;"><div style="font-size:0.75rem;font-weight:bold;margin-bottom:5px;color:var(--gray-500)">ISSUE (BEFORE)</div><img src="${API_BASE}/uploads/before/${c.before_image}" style="width:100%;border-radius:8px;border:1px solid #e5e7eb;max-height:200px;object-fit:cover;"></div>` : ''}
+                ${c.after_image ? `<div style="flex:1;"><div style="font-size:0.75rem;font-weight:bold;margin-bottom:5px;color:var(--emerald-600)">RESOLVED (AFTER)</div><img src="${API_BASE}/uploads/after/${c.after_image}" style="width:100%;border-radius:8px;border:2px solid var(--emerald-500);max-height:200px;object-fit:cover;"></div>` : ''}
+            </div>` : ''}
+            ${c.officer_name ? `<div style="font-size:0.85rem;color:var(--gray-600);margin-bottom:4px"><i class="bi bi-person-badge me-1"></i>Assigned Officer: <strong>${c.officer_name}</strong></div>` : ''}
+            ${deadlineHTML}
+            ${feedbackHTML}
+        `;
+            document.getElementById('modal-detail').classList.add('open');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('open');
+        }
+
+        function getLocation() {
+            const statusEl = document.getElementById('location-status');
+            if (!statusEl) return;
+            statusEl.className = 'location-status loading';
+            statusEl.innerHTML = '<i class="bi bi-arrow-repeat"></i> Getting your GPS location…';
+
+            if (!navigator.geolocation) {
+                statusEl.className = 'location-status error';
+                statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Geolocation not supported.';
                 return;
             }
-            
-            const result = await validateKeywords(description, parseInt(departmentId));
-            
-            if (!result.valid) {
-                warning.textContent = '⚠️ Warning: Your description may not match the selected department. The issue might be flagged as fake.';
-                warning.style.display = 'block';
-            } else {
-                warning.style.display = 'none';
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const { latitude: lat, longitude: lng } = pos.coords;
+                    if (lat < 22.48 || lat > 22.62 || lng < 72.88 || lng > 73.02) {
+                        statusEl.className = 'location-status error';
+                        statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Outside Anand city boundary!';
+                        return;
+                    }
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lng;
+                    statusEl.className = 'location-status success';
+                    statusEl.innerHTML = `<i class="bi bi-check-circle-fill"></i> Location captured (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+
+                    const preview = document.getElementById('map-preview');
+                    if (preview) {
+                        preview.style.display = 'block';
+                        if (!reportMapInstance) {
+                            reportMapInstance = L.map('map-preview').setView([lat, lng], 15);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(reportMapInstance);
+                            if(window.loadMapPOIs) loadMapPOIs(reportMapInstance);
+                        } else {
+                            reportMapInstance.setView([lat, lng], 15);
+                        }
+                        L.marker([lat, lng]).addTo(reportMapInstance);
+                    }
+                },
+                () => {
+                    statusEl.className = 'location-status error';
+                    statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Could not get location. Please enable GPS.';
+                }
+            );
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const el = document.getElementById('image-preview');
+                    const wrap = document.getElementById('image-preview-wrap');
+                    if (el && wrap) {
+                        el.src = e.target.result;
+                        wrap.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
-        async function getLocation() {
-            const status = document.getElementById('location-status');
-            status.innerHTML = '<i class="bi bi-arrow-repeat"></i> Getting location...';
+        function validateDescription() {
+            const descEl = document.getElementById('complaint-description');
+            const deptEl = document.getElementById('department-select');
+            const warn = document.getElementById('keyword-warning');
+            if (!descEl || !deptEl || !warn) return;
+
+            const desc = descEl.value.toLowerCase();
+            const dept = deptEl.value;
+
+            const deptKeywords = {
+                '1': ['road', 'pothole', 'footpath', 'bridge', 'pavement'],
+                '2': ['water', 'pipe', 'leakage', 'supply', 'drain'],
+                '3': ['electricity', 'power', 'light', 'wire', 'meter'],
+                '4': ['garbage', 'waste', 'sanitation', 'clean', 'trash'],
+                '5': ['street light', 'lamp', 'bulb', 'lighting'],
+                '6': ['park', 'garden', 'tree', 'plant', 'grass'],
+            };
+
+            if (!desc || !dept || !deptKeywords[dept]) { warn.style.display = 'none'; return; }
+            const hasMatch = deptKeywords[dept].some(k => desc.includes(k));
+            warn.style.display = hasMatch ? 'none' : 'block';
+        }
+
+        async function analyzeImage() {
+            const fileInput = document.getElementById('complaint-image');
+            const deptSelect = document.getElementById('department-select');
+            const resultDiv = document.getElementById('analysis-result');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            
+            if (!fileInput || !fileInput.files[0]) {
+                showAlert('Please upload an image first', 'warning');
+                return;
+            }
+            if (!deptSelect || !deptSelect.value) {
+                showAlert('Please select a department first', 'warning');
+                return;
+            }
+            
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<i class="bi bi-stars"></i> Analyzing...';
+            
+            const fd = new FormData();
+            fd.append('image', fileInput.files[0]);
+            fd.append('department_id', deptSelect.value);
             
             try {
-                const position = await getCurrentLocation();
-                const lat = position.latitude;
-                const lng = position.longitude;
+                const res = await fetch(API_BASE + '/api/analyze-image', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: fd
+                });
+                const data = await res.json();
                 
-                // Validate location
-                const result = await validateLocation(lat, lng);
-                
-                if (!result.valid) {
-                    status.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i> Out of boundary! Issues can only be reported within Anand city.';
-                    return;
-                }
-                
-                document.getElementById('latitude').value = lat;
-                document.getElementById('longitude').value = lng;
-                status.innerHTML = '<i class="bi bi-check-circle text-success"></i> Location captured!';
-                
-                // Show mini map
-                if (!citizenMap) {
-                    citizenMap = L.map('map-preview').setView([lat, lng], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(citizenMap);
+                resultDiv.style.display = 'block';
+                if (data.is_fake === true) {
+                    resultDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill" style="color:var(--rose-500)"></i> <strong>Fake image detected!</strong> This image does not match ' + deptSelect.options[deptSelect.selectedIndex].text + '. ' + (data.detected_category || '');
+                    resultDiv.style.background = 'var(--rose-50)';
+                } else if (data.is_match === true) {
+                    resultDiv.innerHTML = '<i class="bi bi-check-circle-fill" style="color:var(--emerald-500)"></i> <strong>Image verified!</strong> This matches ' + deptSelect.options[deptSelect.selectedIndex].text + '.';
+                    resultDiv.style.background = 'var(--emerald-50)';
                 } else {
-                    citizenMap.setView([lat, lng], 15);
+                    resultDiv.innerHTML = '<i class="bi bi-question-circle-fill" style="color:var(--amber-500)"></i> <strong>Could not verify</strong> - ' + (data.message || 'Please try again later');
+                    resultDiv.style.background = 'var(--amber-50)';
                 }
-                
-                L.marker([lat, lng]).addTo(citizenMap);
-                
-            } catch (error) {
-                status.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i> Could not get location. Please enable GPS.';
+            } catch (err) {
+                showAlert('Analysis failed: ' + err.message, 'danger');
+            }
+            
+            analyzeBtn.disabled = false;
+            analyzeBtn.innerHTML = '<i class="bi bi-stars"></i> Analyze with AI';
+        }
+
+        function previewImage(input) {
+            if (input && input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const wrap = document.getElementById('image-preview-wrap');
+                    const img = document.getElementById('image-preview');
+                    const analyzeBtn = document.getElementById('analyze-btn');
+                    if (img) img.src = e.target.result;
+                    if (wrap) wrap.style.display = 'block';
+                    if (analyzeBtn) analyzeBtn.style.display = 'inline-block';
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
         async function submitComplaint(e) {
             e.preventDefault();
-            
-            const title = document.getElementById('complaint-title').value;
-            const departmentId = document.getElementById('department-select').value;
-            const description = document.getElementById('complaint-description').value;
-            const latitude = document.getElementById('latitude').value;
-            const longitude = document.getElementById('longitude').value;
-            const address = document.getElementById('location-address').value;
-            const imageFile = document.getElementById('complaint-image').files[0];
-            
-            // Validate GPS
-            if (!latitude || !longitude) {
-                showAlert('Please get your GPS location first', 'warning');
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+            if (!lat || !lng) {
+                showAlert('Please capture your GPS location first.', 'warning');
                 return;
             }
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('description', description);
-            formData.append('department_id', departmentId);
-            formData.append('latitude', latitude);
-            formData.append('longitude', longitude);
-            formData.append('address', address);
-            if (imageFile) {
-                formData.append('before_image', imageFile);
-            }
-            
-            const result = await createComplaint(formData);
-            
-            if (result.success) {
-                showAlert('Complaint submitted successfully!', 'success');
-                document.getElementById('report-form').reset();
-                document.getElementById('image-preview').style.display = 'none';
-                document.getElementById('location-status').innerHTML = '';
-                showSection('home');
-                loadDashboardData();
-            } else {
-                showAlert(result.error, 'danger');
-            }
-        }
 
-        function renderComplaintsList(complaints, containerId) {
-            const container = document.getElementById(containerId);
-            
-            if (!complaints || complaints.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center py-4">No complaints found</p>';
-                return;
-            }
-            
-            container.innerHTML = complaints.map(c => `
-                <div class="complaint-card priority-${c.priority}">
-                    <div class="row">
-                        <div class="col-md-2">
-                            ${c.before_image ? 
-                                `<img src="${API_BASE}/uploads/before/${c.before_image}" class="complaint-image" alt="Before">` :
-                                `<div class="complaint-image bg-light d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-camera text-muted"></i>
-                                </div>`
-                            }
-                        </div>
-                        <div class="col-md-7">
-                            <h6>${c.title}</h6>
-                            <p class="text-muted small mb-1">${c.description.substring(0, 80)}...</p>
-                            <small class="text-muted">${formatDate(c.created_at)}</small>
-                        </div>
-                        <div class="col-md-3 text-end">
-                            <span class="status-${c.status}">${c.status}</span><br>
-                            <span class="priority-${c.priority}">${c.priority}</span>
-                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="showComplaintDetail(${c.id})">
-                                View Details
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
+            const btn = document.querySelector('#report-form button[type="submit"]');
+            if (btn) btn.disabled = true;
 
-        async function loadNotifications() {
-            const notifications = await getNotifications();
-            const container = document.getElementById('notifications-list');
-            const countBadge = document.getElementById('notification-count');
-            
-            const unreadCount = notifications.filter(n => !n.is_read).length;
-            if (unreadCount > 0) {
-                countBadge.textContent = unreadCount;
-                countBadge.style.display = 'block';
-            }
-            
-            if (!notifications || notifications.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center py-4">No notifications</p>';
-                return;
-            }
-            
-            container.innerHTML = notifications.map(n => `
-                <div class="list-group-item list-group-item-action ${n.is_read ? '' : 'bg-light'}" onclick="markNotificationRead(${n.id})">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">${n.title}</h6>
-                        <small>${formatDate(n.created_at)}</small>
-                    </div>
-                    <p class="mb-1">${n.message}</p>
-                </div>
-            `).join('');
-        }
+            const fd = new FormData();
+            fd.append("title", document.getElementById('complaint-title').value);
+            fd.append("department_id", document.getElementById('department-select').value);
+            fd.append("description", document.getElementById('complaint-description').value);
 
-        function showSection(section) {
-            // Hide all sections
-            document.querySelectorAll('.dashboard-section').forEach(s => s.style.display = 'none');
-            
-            // Show selected section
-            document.getElementById(`section-${section}`).style.display = 'block';
-            
-            // Update active nav
-            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            event.target.closest('.nav-link')?.classList.add('active');
-            
-            // Initialize map if needed
-            if (section === 'map' && !citizenMap) {
+            const addr = document.getElementById('location-address').value;
+            if (addr) fd.append("address", addr);
+
+            fd.append("latitude", lat);
+            fd.append("longitude", lng);
+
+            const fileInput = document.getElementById('complaint-image');
+            if (fileInput && fileInput.files[0]) {
+                fd.append("before_image", fileInput.files[0]);
+                fd.append("analyze_image", "true");
+            }
+
+            const res = await createComplaint(fd);
+            if (res.success) {
+                showAlert('Complaint completely submitted over API!', 'success');
                 setTimeout(() => {
-                    citizenMap = L.map('citizen-map').setView([22.5, 72.9], 13);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(citizenMap);
-                    
-                    // Load and display complaints
-                    getComplaints().then(complaints => {
-                        complaints.forEach(c => {
-                            const statusColors = {
-                                'pending': '#f56565',
-                                'assigned': '#4299e1',
-                                'in_progress': '#ecc94b',
-                                'completed': '#48bb78',
-                                'resolved': '#2c7a7b',
-                                'closed': '#718096'
-                            };
-                            
-                            L.circleMarker([c.latitude, c.longitude], {
-                                radius: 10,
-                                fillColor: statusColors[c.status] || '#718096',
-                                color: '#fff',
-                                weight: 2,
-                                opacity: 1,
-                                fillOpacity: 0.8
-                            }).addTo(citizenMap).bindPopup(`
-                                <strong>${c.title}</strong><br>
-                                Status: ${c.status}<br>
-                                ${c.department_name}
-                            `);
-                        });
-                    });
-                }, 100);
+                    location.reload();
+                }, 1000);
+            } else {
+                if (btn) btn.disabled = false;
+                showAlert("Error: " + res.error, 'danger');
+            }
+        }
+
+        function resetForm() {
+            if (document.getElementById('image-preview-wrap')) document.getElementById('image-preview-wrap').style.display = 'none';
+            if (document.getElementById('map-preview')) document.getElementById('map-preview').style.display = 'none';
+            if (document.getElementById('location-status')) {
+                document.getElementById('location-status').innerHTML = '';
+                document.getElementById('location-status').className = '';
+            }
+            if (document.getElementById('keyword-warning')) document.getElementById('keyword-warning').style.display = 'none';
+            if (document.getElementById('latitude')) document.getElementById('latitude').value = '';
+            if (document.getElementById('longitude')) document.getElementById('longitude').value = '';
+            reportMapInstance = null;
+        }
+
+        function openSidebar() {
+            if (document.getElementById('sidebar')) document.getElementById('sidebar').classList.add('open');
+            if (document.getElementById('sidebarOverlay')) document.getElementById('sidebarOverlay').classList.add('active');
+        }
+
+        function closeSidebar() {
+            if (document.getElementById('sidebar')) document.getElementById('sidebar').classList.remove('open');
+            if (document.getElementById('sidebarOverlay')) document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        function showAlert(msg, type = 'info') {
+            const icons = { success: 'check-circle-fill', danger: 'exclamation-octagon-fill', warning: 'exclamation-triangle-fill', info: 'info-circle-fill' };
+            const div = document.createElement('div');
+            div.className = `alert alert-${type}`;
+            div.innerHTML = `<i class="bi bi-${icons[type]}"></i><span>${msg}</span><i class="bi bi-x alert-close" onclick="this.parentElement.remove()"></i>`;
+            const container = document.getElementById('alert-container');
+            if (container) {
+                container.prepend(div);
+                setTimeout(() => div.remove(), 5000);
+            } else {
+                alert(msg);
+            }
+        }
+
+        function doLogout() {
+            showAlert('Logging you out…', 'info');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setTimeout(() => window.location.href = '../auth/login.html', 1000);
+        }
+
+        /* ─── CITIZEN CLOSE / REOPEN ─────────────────────── */
+        async function citizenClose(complaintId) {
+            const feedback = document.getElementById('citizen-feedback-text')?.value || '';
+            if (!confirm('Are you sure you want to permanently close this issue?')) return;
+            const res = await submitFeedback(complaintId, feedback, false);
+            if (res.success) {
+                showAlert('Issue closed successfully! Thank you.', 'success');
+                closeModal('modal-detail');
+                await loadLiveDashboard();
+            } else {
+                showAlert(res.error || 'Failed to close', 'danger');
+            }
+        }
+
+        async function citizenReopen(complaintId) {
+            const feedback = document.getElementById('citizen-feedback-text')?.value || 'Not satisfied with resolution';
+            if (!confirm('Reopen this issue? It will be sent back to the department.')) return;
+            const res = await submitFeedback(complaintId, feedback, true);
+            if (res.success) {
+                showAlert('Issue reopened. The department will be notified.', 'info');
+                closeModal('modal-detail');
+                await loadLiveDashboard();
+            } else {
+                showAlert(res.error || 'Failed to reopen', 'danger');
+            }
+        }
+
+        /* ─── NOTIFICATIONS ──────────────────────────────── */
+        async function loadCitizenNotifications() {
+            try {
+                const notifications = await getNotifications();
+                const countBadge = document.getElementById('notification-count');
+                const panel = document.getElementById('notifications-list');
+
+                // Update badge
+                const unread = notifications.filter(n => !n.is_read).length;
+                if (countBadge) {
+                    if (unread > 0) {
+                        countBadge.textContent = unread;
+                        countBadge.style.display = 'inline-flex';
+                    } else {
+                        countBadge.style.display = 'none';
+                    }
+                }
+
+                if (!panel) return;
+
+                if (!notifications || !notifications.length) {
+                    panel.innerHTML = `<div class="empty-state"><div class="es-icon"><i class="bi bi-bell-slash"></i></div><div class="es-title">No Notifications</div><div class="es-sub">You're all caught up!</div></div>`;
+                    return;
+                }
+
+                const typeIcons = {
+                    'submitted': 'bi-send-check text-primary',
+                    'assigned': 'bi-person-check text-info',
+                    'in_progress': 'bi-gear-wide-connected text-warning',
+                    'completed': 'bi-check2-circle text-success',
+                    'resolved': 'bi-patch-check-fill text-success',
+                    'rejected': 'bi-x-octagon text-danger',
+                    'reopened': 'bi-arrow-counterclockwise text-warning',
+                    'reassigned': 'bi-arrow-left-right text-secondary',
+                    'closed': 'bi-lock-fill text-dark',
+                };
+
+                panel.innerHTML = notifications.map(n => {
+                    const icon = typeIcons[n.type] || 'bi-bell text-muted';
+                    const timeAgo = formatDate(n.created_at);
+                    return `
+                    <div style="padding:12px 16px;border-bottom:1px solid var(--gray-100,#f3f4f6);display:flex;gap:12px;align-items:flex-start;${!n.is_read ? 'background:var(--primary-light,rgba(212,168,67,0.08))' : ''}">
+                        <i class="bi ${icon}" style="font-size:1.3rem;margin-top:2px"></i>
+                        <div style="flex:1">
+                            <div style="font-weight:600;font-size:0.9rem">${n.title}</div>
+                            <div style="color:var(--gray-500);font-size:0.82rem;margin-top:2px">${n.message}</div>
+                            <div style="color:var(--gray-400);font-size:0.75rem;margin-top:4px">${timeAgo}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) {
+                console.error('Notifications load error:', e);
+            }
+        }
+
+        async function markAllRead() {
+            try {
+                await fetch(API_BASE + '/api/notifications/read-all', {
+                    method: 'PUT',
+                    headers: getAuthHeaders()
+                });
+                showAlert('All notifications marked as read', 'success');
+                await loadCitizenNotifications();
+            } catch(e) {
+                showAlert('Failed to mark as read', 'danger');
             }
         }
     </script>
 </body>
+
 </html>
